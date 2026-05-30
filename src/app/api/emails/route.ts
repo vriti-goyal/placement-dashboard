@@ -51,6 +51,9 @@ export async function GET(request: Request) {
       if (listRes.status === 401) {
          return NextResponse.json({ error: 'Unauthorized (Token expired)' }, { status: 401 });
       }
+      if (listRes.status === 429) {
+         return NextResponse.json({ error: 'Gmail API rate limit exceeded. Please try again in a minute.' }, { status: 429 });
+      }
       throw new Error(`Failed to fetch message list: ${listRes.statusText}`);
     }
 

@@ -20,6 +20,7 @@ export function ProfileModal({ onProfileUpdate }: ProfileModalProps) {
   const [cgpa, setCgpa] = useState("");
   const [branch, setBranch] = useState("");
   const [geminiKey, setGeminiKey] = useState("");
+  const [isEditingKey, setIsEditingKey] = useState(false);
 
   useEffect(() => {
     const stored = localStorage.getItem("userProfile");
@@ -29,7 +30,13 @@ export function ProfileModal({ onProfileUpdate }: ProfileModalProps) {
         setCgpa(p.cgpa || "");
         setBranch(p.branch || "");
         setGeminiKey(p.geminiKey || "");
-      } catch (e) {}
+        if (p.geminiKey) setIsEditingKey(false);
+        else setIsEditingKey(true);
+      } catch (e) {
+        setIsEditingKey(true);
+      }
+    } else {
+      setIsEditingKey(true);
     }
   }, []);
 
@@ -37,6 +44,7 @@ export function ProfileModal({ onProfileUpdate }: ProfileModalProps) {
     const profile = { cgpa, branch, geminiKey };
     localStorage.setItem("userProfile", JSON.stringify(profile));
     onProfileUpdate(profile);
+    if (geminiKey) setIsEditingKey(false);
     setOpen(false);
   };
 
@@ -55,8 +63,19 @@ export function ProfileModal({ onProfileUpdate }: ProfileModalProps) {
         <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto pr-2">
           <div className="space-y-2">
             <Label htmlFor="geminiKey" className="font-semibold text-blue-600">Gemini API Key</Label>
-            <Input id="geminiKey" type="password" value={geminiKey} onChange={e => setGeminiKey(e.target.value)} placeholder="AIzaSy..." />
-            <p className="text-xs text-gray-500">Required for advanced AI parsing. Get a free key from <a href="https://aistudio.google.com/" target="_blank" rel="noreferrer" className="text-blue-500 hover:underline">Google AI Studio</a>.</p>
+            {geminiKey && !isEditingKey ? (
+              <div className="flex items-center justify-between bg-blue-50/50 px-3 py-2 border border-blue-100 rounded-md shadow-sm">
+                <span className="text-sm font-medium text-blue-700">API Key is securely configured</span>
+                <Button variant="ghost" size="sm" onClick={() => setIsEditingKey(true)} className="h-6 text-xs text-blue-600 hover:text-blue-800">
+                  Change Key
+                </Button>
+              </div>
+            ) : (
+              <>
+                <Input id="geminiKey" type="password" value={geminiKey} onChange={e => setGeminiKey(e.target.value)} placeholder="AIzaSy..." />
+                <p className="text-xs text-gray-500">Required for advanced AI parsing. Get a free key from <a href="https://aistudio.google.com/" target="_blank" rel="noreferrer" className="text-blue-500 hover:underline">Google AI Studio</a>.</p>
+              </>
+            )}
           </div>
           <div className="space-y-2">
             <Label htmlFor="cgpa">Your CGPA</Label>

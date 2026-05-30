@@ -3,6 +3,8 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { redirect } from "next/navigation";
 import EmailList from "./email-list";
 
+import { LogoutButton } from "@/components/LogoutButton";
+
 export default async function DashboardPage() {
   const session = await getServerSession(authOptions);
 
@@ -17,8 +19,11 @@ export default async function DashboardPage() {
           <h1 className="text-3xl font-bold tracking-tight text-gray-900">Dashboard</h1>
           <p className="text-gray-500 mt-1">Welcome back, {session.user?.name}</p>
         </div>
-        <div className="bg-white border border-gray-200 px-4 py-2 rounded-full shadow-sm">
-          <span className="text-sm font-medium text-gray-600">{session.user?.email}</span>
+        <div className="flex items-center gap-3">
+          <div className="bg-white border border-gray-200 px-4 py-2 rounded-full shadow-sm">
+            <span className="text-sm font-medium text-gray-600">{session.user?.email}</span>
+          </div>
+          <LogoutButton />
         </div>
       </div>
       

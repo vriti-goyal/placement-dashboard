@@ -37,7 +37,7 @@ export function JobCard({ job, status, onStatusChange }: JobCardProps) {
           </div>
           <Badge variant={job.deadline ? "destructive" : "secondary"} className="whitespace-nowrap shadow-sm">
             <CalendarClock className="w-3 h-3 mr-1.5" />
-            {job.deadline || "Deadline Unknown"}
+            {job.deadline || "No deadline found"}
           </Badge>
         </div>
       </CardHeader>
