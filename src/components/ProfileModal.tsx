@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Settings } from "lucide-react";
+import { Settings, ShieldCheck } from "lucide-react";
 
 export interface UserProfile {
   cgpa: string;
@@ -50,45 +50,47 @@ export function ProfileModal({ onProfileUpdate }: ProfileModalProps) {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-2 rounded-full shadow-sm">
-          <Settings className="w-4 h-4" />
-          Preferences
-        </Button>
+      <DialogTrigger render={<Button variant="outline" size="sm" className="gap-2 rounded-full shadow-sm border-white/20 text-[#94A3B8] hover:text-white hover:bg-white/10 hover:border-white/40 group" />}>
+        <Settings className="w-4 h-4 group-hover:rotate-90 transition-transform duration-500" />
+        <span className="hidden sm:inline">Preferences</span>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-sm">
+      <DialogContent className="sm:max-w-sm bg-[#0F1115] border border-white/10 text-white shadow-[0_0_50px_-10px_rgba(247,147,26,0.2)]">
         <DialogHeader>
-          <DialogTitle>Your Preferences</DialogTitle>
+          <DialogTitle className="font-heading text-xl text-white">Your Parameters</DialogTitle>
         </DialogHeader>
-        <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto pr-2">
+        <div className="space-y-6 py-4 max-h-[60vh] overflow-y-auto pr-2 no-scrollbar">
           <div className="space-y-2">
-            <Label htmlFor="geminiKey" className="font-semibold text-blue-600">Gemini API Key</Label>
+            <Label htmlFor="geminiKey" className="font-mono text-[#F7931A] text-xs tracking-widest uppercase">Gemini API Key</Label>
             {geminiKey && !isEditingKey ? (
-              <div className="flex items-center justify-between bg-blue-50/50 px-3 py-2 border border-blue-100 rounded-md shadow-sm">
-                <span className="text-sm font-medium text-blue-700">API Key is securely configured</span>
-                <Button variant="ghost" size="sm" onClick={() => setIsEditingKey(true)} className="h-6 text-xs text-blue-600 hover:text-blue-800">
-                  Change Key
+              <div className="flex items-center justify-between bg-[#F7931A]/10 px-4 py-3 border border-[#F7931A]/20 rounded-xl shadow-[0_0_15px_rgba(247,147,26,0.1)]">
+                <span className="text-sm font-mono text-[#F7931A] flex items-center gap-2">
+                  <ShieldCheck className="w-4 h-4" /> Securely configured
+                </span>
+                <Button variant="ghost" size="sm" onClick={() => setIsEditingKey(true)} className="h-6 text-xs text-[#94A3B8] hover:text-white">
+                  CHANGE
                 </Button>
               </div>
             ) : (
               <>
-                <Input id="geminiKey" type="password" value={geminiKey} onChange={e => setGeminiKey(e.target.value)} placeholder="AIzaSy..." />
-                <p className="text-xs text-gray-500">Required for advanced AI parsing. Get a free key from <a href="https://aistudio.google.com/" target="_blank" rel="noreferrer" className="text-blue-500 hover:underline">Google AI Studio</a>.</p>
+                <Input id="geminiKey" type="password" value={geminiKey} onChange={e => setGeminiKey(e.target.value)} placeholder="AIzaSy..." className="font-mono bg-black/40 border-white/10 text-white placeholder:text-white/20" />
+                <p className="text-xs text-[#94A3B8]">Required for AI parsing. Get a free key from <a href="https://aistudio.google.com/" target="_blank" rel="noreferrer" className="text-[#F7931A] hover:underline hover:text-[#FFD600] transition-colors">Google AI Studio</a>.</p>
               </>
             )}
           </div>
           <div className="space-y-2">
-            <Label htmlFor="cgpa">Your CGPA</Label>
-            <Input id="cgpa" type="number" step="0.01" value={cgpa} onChange={e => setCgpa(e.target.value)} placeholder="e.g. 8.5" />
-            <p className="text-xs text-gray-500">Used to filter out jobs with a higher cutoff.</p>
+            <Label htmlFor="cgpa" className="font-mono text-white/50 text-xs tracking-widest uppercase">Your CGPA</Label>
+            <Input id="cgpa" type="number" step="0.01" value={cgpa} onChange={e => setCgpa(e.target.value)} placeholder="e.g. 8.5" className="font-mono bg-black/40 border-white/10 text-white placeholder:text-white/20" />
+            <p className="text-xs text-[#94A3B8]">Filters out blocks with higher required limits.</p>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="branch">Your Branch</Label>
-            <Input id="branch" value={branch} onChange={e => setBranch(e.target.value)} placeholder="e.g. CSE" />
-            <p className="text-xs text-gray-500">Used to filter jobs by eligible branches.</p>
+            <Label htmlFor="branch" className="font-mono text-white/50 text-xs tracking-widest uppercase">Your Branch</Label>
+            <Input id="branch" value={branch} onChange={e => setBranch(e.target.value)} placeholder="e.g. CSE" className="font-mono bg-black/40 border-white/10 text-white placeholder:text-white/20" />
+            <p className="text-xs text-[#94A3B8]">Filters blocks by eligible node branches.</p>
           </div>
         </div>
-        <Button onClick={handleSave} className="w-full">Save Preferences</Button>
+        <Button onClick={handleSave} className="w-full mt-2 group border border-[#F7931A]/30 hover:border-[#F7931A] hover:shadow-[0_0_15px_rgba(247,147,26,0.3)]">
+          <span className="group-hover:text-[#F7931A] transition-colors">Save Parameters</span>
+        </Button>
       </DialogContent>
     </Dialog>
   );

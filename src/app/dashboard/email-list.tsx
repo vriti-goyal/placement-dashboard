@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { signIn } from 'next-auth/react';
 import { parseEmail, ParsedJob } from '@/lib/parser';
 import { JobCard, JobStatus } from '@/components/JobCard';
-import { RefreshCw, FilterX, Search, DollarSign, AlertCircle, Filter, X } from 'lucide-react';
+import { RefreshCw, FilterX, Search, DollarSign, AlertCircle, Filter, X, Mail } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,19 +21,19 @@ const CalendarView = dynamic(() => import('@/components/CalendarView').then(mod 
 
 function JobCardSkeleton() {
   return (
-    <div className="border-2 border-gray-100 rounded-xl p-5 bg-white h-full space-y-4 shadow-sm animate-pulse">
+    <div className="border border-white/10 rounded-2xl p-8 bg-[#0F1115] h-full space-y-4 shadow-[0_0_30px_-10px_rgba(247,147,26,0.1)] animate-pulse">
       <div className="flex justify-between items-start gap-4">
-        <div className="space-y-2 w-full">
-          <div className="h-6 bg-gray-200 rounded w-2/3"></div>
-          <div className="h-4 bg-gray-100 rounded w-1/3"></div>
+        <div className="space-y-3 w-full">
+          <div className="h-7 bg-white/5 rounded w-2/3"></div>
+          <div className="h-4 bg-white/5 rounded w-1/3"></div>
         </div>
-        <div className="h-6 w-20 bg-gray-200 rounded-full shrink-0"></div>
+        <div className="h-6 w-20 bg-white/10 rounded-full shrink-0"></div>
       </div>
-      <div className="grid grid-cols-2 gap-4 pt-4">
-        <div className="h-10 bg-gray-50 rounded"></div>
-        <div className="h-10 bg-gray-50 rounded"></div>
+      <div className="grid grid-cols-2 gap-4 pt-6">
+        <div className="h-12 bg-white/5 rounded border-b-2 border-white/10"></div>
+        <div className="h-12 bg-white/5 rounded border-b-2 border-white/10"></div>
       </div>
-      <div className="h-8 bg-gray-100 rounded mt-4"></div>
+      <div className="h-10 bg-white/5 rounded mt-6"></div>
     </div>
   );
 }
@@ -41,8 +41,8 @@ function JobCardSkeleton() {
 function CalendarSkeleton() {
   return (
     <div className="flex flex-col lg:flex-row gap-6 animate-pulse">
-      <div className="w-full lg:flex-1 h-96 bg-gray-100 rounded-xl"></div>
-      <div className="w-full lg:w-80 shrink-0 h-96 bg-gray-50 rounded-xl"></div>
+      <div className="w-full lg:flex-1 h-96 bg-[#0F1115] border border-white/10 rounded-2xl shadow-[0_0_30px_-10px_rgba(247,147,26,0.1)]"></div>
+      <div className="w-full lg:w-80 shrink-0 h-96 bg-[#0F1115] border border-white/10 rounded-2xl shadow-[0_0_30px_-10px_rgba(247,147,26,0.1)]"></div>
     </div>
   );
 }
@@ -231,132 +231,134 @@ export default function EmailList() {
   };
 
   return (
-    <div className="space-y-6 pb-12">
+    <div className="space-y-8 pb-12">
       <OnboardingModal />
       
       {!profile.geminiKey && (
-        <div className="bg-blue-50 border border-blue-200 text-blue-800 px-4 py-3 rounded-lg flex items-start gap-3 shadow-sm">
-          <AlertCircle className="w-5 h-5 text-blue-500 shrink-0 mt-0.5" />
+        <div className="bg-[#EA580C]/10 border border-[#EA580C]/30 text-white px-6 py-4 rounded-2xl flex items-start gap-4 shadow-[0_0_20px_rgba(234,88,12,0.15)] holographic-gradient">
+          <AlertCircle className="w-6 h-6 text-[#F7931A] shrink-0 mt-0.5 animate-pulse" />
           <div className="text-sm">
-            <p className="font-semibold">Action Required: Enable Advanced AI Parsing</p>
-            <p className="mt-1 opacity-90">To automatically extract missing details from tricky emails, click <strong>Preferences</strong> and enter your free Gemini API key.</p>
+            <p className="font-heading font-semibold text-[#F7931A] text-base">Action Required: Enable Advanced AI Parsing</p>
+            <p className="mt-1 text-[#94A3B8]">To automatically extract missing details from tricky emails, click <strong>Preferences</strong> and enter your free Gemini API key.</p>
           </div>
         </div>
       )}
 
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <h2 className="text-2xl font-bold tracking-tight text-gray-900">Opportunities</h2>
+        <h2 className="text-3xl font-heading font-bold tracking-tight text-white flex items-center gap-3">
+          <div className="w-2 h-8 bg-gradient-to-b from-[#F7931A] to-[#EA580C] rounded-full"></div>
+          Opportunities
+        </h2>
         <div className="flex items-center gap-3 w-full sm:w-auto">
           <Button
             variant="outline"
-            className="lg:hidden w-full sm:w-auto text-gray-600"
+            className="lg:hidden w-full sm:w-auto border-white/20 text-white"
             onClick={() => setIsFilterOpen(true)}
           >
-            <Filter className="w-4 h-4 mr-2" /> Filters
+            <Filter className="w-4 h-4 mr-2 text-[#F7931A]" /> Filters
           </Button>
           <ProfileModal onProfileUpdate={setProfile} />
           <Button 
             onClick={() => fetchEmails(true)} 
             disabled={loading} 
             variant="outline" 
-            className="shadow-sm hover:bg-gray-50 transition-all group w-full sm:w-auto shrink-0"
+            className="group w-full sm:w-auto shrink-0 border-[#F7931A]/30 text-[#F7931A] hover:border-[#F7931A] hover:bg-[#F7931A]/10 hover:shadow-[0_0_15px_rgba(247,147,26,0.3)]"
           >
-            <RefreshCw className={`w-4 h-4 mr-2 text-gray-500 group-hover:text-gray-900 ${loading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
             {loading ? 'Scanning...' : 'Fetch Latest'}
           </Button>
         </div>
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-6 relative">
+      <div className="flex flex-col lg:flex-row gap-8 relative">
         {/* Mobile Filter Drawer Overlay */}
         {isFilterOpen && (
           <div 
-            className="fixed inset-0 bg-black/20 z-40 lg:hidden" 
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden" 
             onClick={() => setIsFilterOpen(false)} 
           />
         )}
         
         {/* Filter Sidebar / Drawer */}
-        <div className={`fixed inset-y-0 right-0 z-50 w-72 bg-white shadow-xl p-5 transform transition-transform duration-300 ease-in-out lg:relative lg:translate-x-0 lg:w-64 lg:shadow-sm lg:rounded-xl lg:border lg:border-gray-200 lg:h-fit ${isFilterOpen ? 'translate-x-0' : 'translate-x-full'}`}>
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="font-semibold text-gray-900">Filters</h3>
+        <div className={`fixed inset-y-0 right-0 z-50 w-80 bg-[#0F1115] shadow-2xl p-6 border-l border-white/10 transform transition-transform duration-300 ease-in-out lg:relative lg:translate-x-0 lg:w-72 lg:rounded-2xl lg:border lg:h-fit ${isFilterOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+          <div className="flex items-center justify-between mb-8 border-b border-white/10 pb-4">
+            <h3 className="font-heading font-semibold text-white text-lg">Filters</h3>
             <div className="flex items-center gap-2">
-              <Button variant="ghost" size="sm" onClick={clearFilters} className="h-8 px-2 text-xs text-gray-500">
+              <Button variant="ghost" size="sm" onClick={clearFilters} className="h-8 px-2 text-xs text-[#94A3B8] hover:text-white">
                 <FilterX className="w-3 h-3 mr-1" /> Clear
               </Button>
-              <Button variant="ghost" size="icon" className="lg:hidden h-8 w-8 text-gray-500" onClick={() => setIsFilterOpen(false)}>
+              <Button variant="ghost" size="icon" className="lg:hidden h-8 w-8 text-[#94A3B8] hover:text-white" onClick={() => setIsFilterOpen(false)}>
                 <X className="w-4 h-4" />
               </Button>
             </div>
           </div>
 
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label className="text-xs text-gray-500 uppercase tracking-wider">Role Search</Label>
+          <div className="space-y-6">
+            <div className="space-y-3">
+              <Label className="text-xs text-[#F7931A] font-mono uppercase tracking-widest">Role Search</Label>
               <div className="relative">
-                <Search className="w-4 h-4 absolute left-3 top-2.5 text-gray-400" />
+                <Search className="w-4 h-4 absolute left-3 top-4 text-[#94A3B8]" />
                 <Input 
                   placeholder="e.g. SDE" 
                   value={roleSearch} 
                   onChange={e => setRoleSearch(e.target.value)}
-                  className="pl-9 h-9 text-sm"
+                  className="pl-10 h-12"
                 />
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label className="text-xs text-gray-500 uppercase tracking-wider">Min Stipend</Label>
+            <div className="space-y-3">
+              <Label className="text-xs text-[#F7931A] font-mono uppercase tracking-widest">Min Stipend</Label>
               <div className="relative">
-                <DollarSign className="w-4 h-4 absolute left-3 top-2.5 text-gray-400" />
+                <DollarSign className="w-4 h-4 absolute left-3 top-4 text-[#94A3B8]" />
                 <Input 
                   placeholder="e.g. 40000" 
                   value={minStipend} 
                   onChange={e => setMinStipend(e.target.value)}
-                  className="pl-9 h-9 text-sm"
+                  className="pl-10 h-12"
                 />
               </div>
             </div>
 
             {profile.cgpa || profile.branch ? (
-              <div className="pt-4 border-t border-gray-100">
-                <Label className="text-xs text-gray-500 uppercase tracking-wider mb-2 block">Active Profile Filters</Label>
-                {profile.cgpa && <div className="text-sm font-medium text-blue-600 bg-blue-50 px-2 py-1 rounded inline-block mb-1">CGPA: &ge; {profile.cgpa}</div>}
-                <br />
-                {profile.branch && <div className="text-sm font-medium text-indigo-600 bg-indigo-50 px-2 py-1 rounded inline-block">Branch: {profile.branch}</div>}
+              <div className="pt-6 mt-6 border-t border-white/10">
+                <Label className="text-xs text-[#94A3B8] font-mono uppercase tracking-widest mb-3 block">Active Profile Node</Label>
+                {profile.cgpa && <div className="text-sm font-mono text-[#FFD600] bg-[#FFD600]/10 border border-[#FFD600]/20 px-3 py-1.5 rounded-lg inline-block mb-2 mr-2">CGPA &ge; {profile.cgpa}</div>}
+                {profile.branch && <div className="text-sm font-mono text-white bg-white/5 border border-white/10 px-3 py-1.5 rounded-lg inline-block">Branch: {profile.branch}</div>}
               </div>
             ) : null}
           </div>
         </div>
 
         {/* Main Content */}
-        <div className="flex-1 space-y-4 min-w-0">
+        <div className="flex-1 space-y-6 min-w-0">
           {error && (
-            <div className={`p-4 rounded-lg text-sm shadow-sm flex items-start gap-3 ${error.includes('rate limit') ? 'bg-orange-50 border-orange-200 text-orange-700' : 'bg-red-50 border-red-200 text-red-600'}`}>
-              <AlertCircle className={`w-5 h-5 shrink-0 ${error.includes('rate limit') ? 'text-orange-500' : 'text-red-500'}`} />
+            <div className={`p-5 rounded-2xl text-sm flex items-start gap-3 border ${error.includes('rate limit') ? 'bg-[#EA580C]/10 border-[#EA580C]/30 text-white shadow-[0_0_20px_rgba(234,88,12,0.15)]' : 'bg-destructive/10 border-destructive/30 text-white shadow-[0_0_20px_rgba(220,38,38,0.15)]'}`}>
+              <AlertCircle className={`w-5 h-5 shrink-0 mt-0.5 ${error.includes('rate limit') ? 'text-[#F7931A]' : 'text-destructive'}`} />
               <div>
-                <span className="font-semibold">{error.includes('rate limit') ? 'Too Many Requests' : 'Error'}</span>
-                <p className="mt-0.5">{error}</p>
+                <span className="font-heading font-semibold text-base mb-1 block">{error.includes('rate limit') ? 'API Rate Limit Exceeded' : 'System Error'}</span>
+                <p className="text-[#94A3B8]">{error}</p>
               </div>
             </div>
           )}
           
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-1 rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-[#0F1115] p-2 rounded-2xl border border-white/10 shadow-lg overflow-hidden">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full sm:w-auto overflow-x-auto no-scrollbar">
-              <TabsList className="inline-flex h-10 items-center justify-center rounded-md bg-muted p-1 text-muted-foreground w-max min-w-full">
-                <TabsTrigger value="all">All</TabsTrigger>
-                <TabsTrigger value="calendar">Calendar</TabsTrigger>
-                <TabsTrigger value="interested">Interested</TabsTrigger>
-                <TabsTrigger value="applied">Applied</TabsTrigger>
-                <TabsTrigger value="oa">OA</TabsTrigger>
-                <TabsTrigger value="interview">Interview</TabsTrigger>
+              <TabsList className="inline-flex h-12 items-center justify-center rounded-xl bg-black/40 p-1 text-[#94A3B8] w-max min-w-full">
+                <TabsTrigger value="all" className="data-[state=active]:bg-[#1E293B] data-[state=active]:text-white rounded-lg px-4 py-2">All</TabsTrigger>
+                <TabsTrigger value="calendar" className="data-[state=active]:bg-[#1E293B] data-[state=active]:text-white rounded-lg px-4 py-2">Calendar</TabsTrigger>
+                <TabsTrigger value="interested" className="data-[state=active]:bg-[#1E293B] data-[state=active]:text-white rounded-lg px-4 py-2">Interested</TabsTrigger>
+                <TabsTrigger value="applied" className="data-[state=active]:bg-[#1E293B] data-[state=active]:text-white rounded-lg px-4 py-2">Applied</TabsTrigger>
+                <TabsTrigger value="oa" className="data-[state=active]:bg-[#1E293B] data-[state=active]:text-white rounded-lg px-4 py-2">OA</TabsTrigger>
+                <TabsTrigger value="interview" className="data-[state=active]:bg-[#1E293B] data-[state=active]:text-white rounded-lg px-4 py-2">Interview</TabsTrigger>
               </TabsList>
             </Tabs>
-            <div className="text-xs text-gray-500 px-4 font-medium flex flex-wrap gap-3 py-2 sm:py-0">
-              <span>{counts.total} Total</span>
-              <span className="text-blue-600">{counts.interested} Interested</span>
-              <span className="text-green-600">{counts.applied} Applied</span>
-              <span className="text-orange-600">{counts.oa} OA</span>
-              <span className="text-purple-600">{counts.interview} Interview</span>
+            <div className="text-xs text-[#94A3B8] font-mono px-4 flex flex-wrap gap-4 py-2 sm:py-0">
+              <span className="text-white">[{counts.total}] Total</span>
+              <span className="text-[#FFD600]">[{counts.interested}] Interested</span>
+              <span className="text-green-400">[{counts.applied}] Applied</span>
+              <span className="text-[#EA580C]">[{counts.oa}] OA</span>
+              <span className="text-purple-400">[{counts.interview}] Interview</span>
             </div>
           </div>
 
@@ -371,24 +373,24 @@ export default function EmailList() {
               onStatusChange={handleStatusChange}
             />
           ) : loading && !jobs.length ? (
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
               {[1, 2, 3, 4].map(i => <JobCardSkeleton key={i} />)}
             </div>
           ) : !loading && jobs.length === 0 ? (
-            <div className="flex flex-col items-center justify-center p-24 border-2 border-dashed border-gray-200 rounded-xl bg-white/50 text-center">
-              <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4 border border-gray-100">
-                <Mail className="w-8 h-8 text-gray-400" />
+            <div className="flex flex-col items-center justify-center p-24 border border-white/10 rounded-2xl bg-[#0F1115] text-center holographic-gradient">
+              <div className="w-20 h-20 bg-black/40 rounded-full flex items-center justify-center mb-6 border border-white/5 shadow-[0_0_30px_-10px_rgba(247,147,26,0.2)]">
+                <Mail className="w-10 h-10 text-[#F7931A] opacity-50" />
               </div>
-              <h3 className="text-lg font-semibold text-gray-900">No Emails Found</h3>
-              <p className="text-gray-500 mt-2 max-w-sm">We couldn't find any placement emails from the TNP cell in your inbox.</p>
+              <h3 className="text-2xl font-heading font-semibold text-white">No Transmissions Found</h3>
+              <p className="text-[#94A3B8] mt-3 max-w-md">The network is quiet. We couldn't locate any placement block entries in your designated inbox.</p>
             </div>
           ) : filteredJobs.length === 0 ? (
-            <div className="p-24 text-center border-2 border-dashed border-gray-200 rounded-xl bg-white/50">
-              <p className="text-gray-500 font-medium">No opportunities match your current filters.</p>
-              <Button variant="link" onClick={clearFilters} className="mt-2 text-blue-600">Clear all filters</Button>
+            <div className="p-24 text-center border border-white/10 rounded-2xl bg-[#0F1115] holographic-gradient">
+              <p className="text-white font-medium text-lg">No nodes match your current parameters.</p>
+              <Button variant="link" onClick={clearFilters} className="mt-4 text-[#F7931A]">Reset all parameters</Button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
               {filteredJobs.map((job) => (
                 <JobCard 
                   key={job.id} 

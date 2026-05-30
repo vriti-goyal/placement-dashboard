@@ -82,20 +82,20 @@ export function CalendarView({
   };
 
   const getDotColor = (status: JobStatus, date: Date) => {
-    if (status === 'applied') return 'bg-green-500';
-    if (status === 'interested') return 'bg-blue-500';
-    if (isToday(date) || isTomorrow(date)) return 'bg-red-500';
-    return 'bg-gray-400';
+    if (status === 'applied') return 'bg-green-400 shadow-[0_0_8px_rgba(74,222,128,0.6)]';
+    if (status === 'interested') return 'bg-[#FFD600] shadow-[0_0_8px_rgba(255,214,0,0.6)]';
+    if (isToday(date) || isTomorrow(date)) return 'bg-[#EA580C] shadow-[0_0_8px_rgba(234,88,12,0.6)]';
+    return 'bg-white/30';
   };
 
   return (
     <div className="flex flex-col lg:flex-row gap-6 items-start">
-      <div className="w-full lg:flex-1 bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold text-gray-900">Deadline Calendar</h3>
-          <Button variant="ghost" size="sm" onClick={onToggleShowDismissed} className="text-xs">
+      <div className="w-full lg:flex-1 bg-[#0F1115] p-6 rounded-2xl border border-white/10 shadow-[0_0_30px_-10px_rgba(247,147,26,0.1)]">
+        <div className="flex items-center justify-between mb-6 pb-4 border-b border-white/10">
+          <h3 className="font-heading font-semibold text-white text-lg">Deadline Ledger</h3>
+          <Button variant="ghost" size="sm" onClick={onToggleShowDismissed} className="text-xs font-mono text-[#94A3B8] hover:text-white">
             {showDismissed ? <EyeOff className="w-4 h-4 mr-2" /> : <Eye className="w-4 h-4 mr-2" />}
-            {showDismissed ? "Hide Dismissed" : "Show Dismissed"}
+            {showDismissed ? "[HIDE DISMISSED]" : "[SHOW DISMISSED]"}
           </Button>
         </div>
         
@@ -107,11 +107,11 @@ export function CalendarView({
                 const dayJobs = getJobsForDate(date);
                 if (dayJobs.length > 0) {
                   return (
-                    <div className="flex flex-wrap justify-center gap-1 mt-1">
+                    <div className="flex flex-wrap justify-center gap-1.5 mt-2">
                       {dayJobs.map(j => (
                         <div 
                           key={j.id} 
-                          className={`w-2 h-2 rounded-full ${getDotColor(jobStatuses[j.id] || 'none', date)}`} 
+                          className={`w-1.5 h-1.5 rounded-full ${getDotColor(jobStatuses[j.id] || 'none', date)}`} 
                           title={j.company || 'Job'} 
                         />
                       ))}
@@ -121,41 +121,41 @@ export function CalendarView({
               }
               return null;
             }}
-            className="w-full rounded-lg border-none shadow-sm p-4 font-sans text-sm"
+            className="w-full rounded-lg border-none shadow-sm p-4 font-body text-sm bg-transparent text-white"
           />
         </div>
       </div>
 
-      <div className="w-full lg:w-80 shrink-0 bg-white p-5 rounded-xl border border-gray-200 shadow-sm space-y-4">
-        <h3 className="font-semibold text-gray-900">Upcoming Deadlines (Next 14 Days)</h3>
+      <div className="w-full lg:w-80 shrink-0 bg-[#0F1115] p-6 rounded-2xl border border-white/10 shadow-[0_0_30px_-10px_rgba(247,147,26,0.1)] space-y-6">
+        <h3 className="font-heading font-semibold text-white text-lg pb-4 border-b border-white/10">Upcoming Nodes (14d)</h3>
         {upcomingJobs.length === 0 ? (
           <div className="py-12 flex flex-col items-center text-center">
-             <div className="w-12 h-12 bg-gray-50 rounded-full flex items-center justify-center mb-3">
-               <CalendarClock className="w-6 h-6 text-gray-300" />
+             <div className="w-16 h-16 bg-white/5 border border-white/10 rounded-full flex items-center justify-center mb-4 shadow-[0_0_20px_rgba(247,147,26,0.1)]">
+               <CalendarClock className="w-8 h-8 text-[#94A3B8]" />
              </div>
-             <p className="text-sm font-medium text-gray-600">No deadlines in next 14 days</p>
-             <p className="text-xs text-gray-400 mt-1">You're all caught up!</p>
+             <p className="text-sm font-medium text-white">No active deadlines detected</p>
+             <p className="text-xs text-[#94A3B8] font-mono mt-2">Network sync complete.</p>
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-4">
             {upcomingJobs.map(job => {
               const daysLeft = differenceInDays(job.parsedDate!, startOfDay(new Date()));
               return (
-                <div key={job.id} className="p-3 border rounded-lg hover:bg-gray-50 flex flex-col gap-2 transition-colors relative group">
+                <div key={job.id} className="p-4 border border-white/10 bg-black/20 rounded-xl hover:border-[#F7931A]/30 flex flex-col gap-3 transition-colors relative group shadow-sm hover:shadow-[0_0_15px_rgba(247,147,26,0.15)]">
                   <div className="flex justify-between items-start">
-                    <div className="font-medium text-sm text-gray-900">{job.company || 'Unknown Company'}</div>
-                    <Badge variant={daysLeft <= 1 ? "destructive" : "secondary"} className="text-[10px]">
-                      {daysLeft === 0 ? "Today" : daysLeft === 1 ? "Tomorrow" : `${daysLeft} days`}
+                    <div className="font-heading font-semibold text-sm text-white">{job.company || 'Unknown Node'}</div>
+                    <Badge variant={daysLeft <= 1 ? "destructive" : "outline"} className="text-[10px] font-mono tracking-wider">
+                      {daysLeft === 0 ? "TODAY" : daysLeft === 1 ? "TOMORROW" : `${daysLeft} DAYS`}
                     </Badge>
                   </div>
-                  <div className="text-xs text-gray-600 truncate">{job.role || 'No Role'}</div>
+                  <div className="text-xs text-[#94A3B8] truncate">{job.role || 'No Function Defined'}</div>
                   <Button 
                     variant="ghost" 
                     size="sm" 
                     onClick={() => onDismiss(job.id)} 
-                    className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity h-6 px-2 text-[10px]"
+                    className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity h-6 px-2 text-[10px] font-mono text-[#F7931A] hover:bg-[#F7931A]/10 hover:text-white"
                   >
-                    Dismiss
+                    DISMISS
                   </Button>
                 </div>
               );
@@ -165,11 +165,13 @@ export function CalendarView({
       </div>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto bg-[#0F1115] border border-white/10 text-white shadow-[0_0_50px_-10px_rgba(247,147,26,0.2)]">
           <DialogHeader>
-            <DialogTitle>Jobs due on {selectedDate?.toLocaleDateString()}</DialogTitle>
+            <DialogTitle className="font-heading text-2xl text-white">
+              Nodes closing on <span className="text-[#F7931A]">{selectedDate?.toLocaleDateString()}</span>
+            </DialogTitle>
           </DialogHeader>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
             {selectedDate && getJobsForDate(selectedDate).map(job => (
               <JobCard 
                 key={job.id} 
