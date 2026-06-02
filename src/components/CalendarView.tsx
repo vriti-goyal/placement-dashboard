@@ -19,6 +19,7 @@ interface CalendarViewProps {
   showDismissed: boolean;
   onToggleShowDismissed: () => void;
   onStatusChange: (id: string, status: JobStatus) => void;
+  onAddCustomJob?: (job: ParsedJob) => void;
 }
 
 export function parseDeadlineDate(dateStr: string | null): Date | null {
@@ -43,10 +44,17 @@ export function CalendarView({
   onDismiss,
   showDismissed,
   onToggleShowDismissed,
-  onStatusChange
+  onStatusChange,
+  onAddCustomJob
 }: CalendarViewProps) {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [confirmId, setConfirmId] = useState<string | null>(null);
+  
+  // Custom event form state
+  const [isAddingEvent, setIsAddingEvent] = useState(false);
+  const [newEventCompany, setNewEventCompany] = useState('');
+  const [newEventRole, setNewEventRole] = useState('');
 
   // Parse dates and filter jobs
   const jobsWithDates = useMemo(() => {
@@ -74,11 +82,33 @@ export function CalendarView({
   };
 
   const handleDayClick = (value: Date) => {
-    const jobsOnDay = getJobsForDate(value);
-    if (jobsOnDay.length > 0) {
-      setSelectedDate(value);
-      setIsDialogOpen(true);
-    }
+    setSelectedDate(value);
+    setIsDialogOpen(true);
+    setIsAddingEvent(false);
+    setNewEventCompany('');
+    setNewEventRole('');
+  };
+
+  const handleAddCustom = () => {
+    if (!newEventCompany || !onAddCustomJob || !selectedDate) return;
+    const newJob: ParsedJob = {
+      id: `custom-${Date.now()}`,
+      company: newEventCompany,
+      role: newEventRole,
+      deadline: `${selectedDate.getDate()}/${selectedDate.getMonth() + 1}/${selectedDate.getFullYear()}`,
+      date: new Date().toISOString(),
+      subject: `Custom Event: ${newEventCompany}`,
+      rawBody: '',
+      classification: { type: 'Placement', bucket: 'A' },
+      cgCutoff: '',
+      branches: [],
+      stipend: '',
+      backlogs: ''
+    };
+    onAddCustomJob(newJob);
+    setIsAddingEvent(false);
+    setNewEventCompany('');
+    setNewEventRole('');
   };
 
   const getDotColor = (status: JobStatus, date: Date) => {
@@ -149,14 +179,28 @@ export function CalendarView({
                     </Badge>
                   </div>
                   <div className="text-xs text-[#94A3B8] truncate">{job.role || 'No Function Defined'}</div>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={() => onDismiss(job.id)} 
-                    className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity h-6 px-2 text-[10px] font-mono text-[#F7931A] hover:bg-[#F7931A]/10 hover:text-white"
-                  >
-                    DISMISS
-                  </Button>
+                  <div className="text-xs text-[#94A3B8] truncate">{job.role || 'No Function Defined'}</div>
+                  
+                  {confirmId === job.id ? (
+                    <Button 
+                      variant="destructive" 
+                      size="sm" 
+                      onClick={() => { onDismiss(job.id); setConfirmId(null); }}
+                      onMouseLeave={() => setConfirmId(null)}
+                      className="absolute top-2 right-2 transition-opacity h-6 px-2 text-[10px] font-mono"
+                    >
+                      CONFIRM DISMISS
+                    </Button>
+                  ) : (
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={() => setConfirmId(job.id)} 
+                      className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity h-6 px-2 text-[10px] font-mono text-[#F7931A] hover:bg-[#F7931A]/10 hover:text-white"
+                    >
+                      DISMISS
+                    </Button>
+                  )}
                 </div>
               );
             })}
@@ -165,13 +209,50 @@ export function CalendarView({
       </div>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto bg-[#0F1115] border border-white/10 text-white shadow-[0_0_50px_-10px_rgba(247,147,26,0.2)]">
+        <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto bg-[#0F1115] border border-white/10 text-white shadow-[0_0_50px_-10px_rgba(247,147,26,0.2)]">
           <DialogHeader>
-            <DialogTitle className="font-heading text-2xl text-white">
-              Nodes closing on <span className="text-[#F7931A]">{selectedDate?.toLocaleDateString()}</span>
+            <DialogTitle className="font-heading text-2xl text-white flex justify-between items-center pr-8">
+              <span>Nodes on <span className="text-[#F7931A]">{selectedDate?.toLocaleDateString()}</span></span>
+              {!isAddingEvent && (
+                <Button variant="outline" size="sm" onClick={() => setIsAddingEvent(true)} className="border-[#F7931A]/30 text-[#F7931A] hover:bg-[#F7931A]/10">
+                  + Add Event
+                </Button>
+              )}
             </DialogTitle>
           </DialogHeader>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+          
+          {isAddingEvent && (
+            <div className="mt-4 p-4 border border-[#F7931A]/30 bg-[#F7931A]/5 rounded-xl space-y-4">
+              <div className="space-y-3">
+                <label className="text-xs font-mono text-[#94A3B8] uppercase">Company / Title</label>
+                <input 
+                  autoFocus
+                  type="text" 
+                  value={newEventCompany} 
+                  onChange={e => setNewEventCompany(e.target.value)} 
+                  className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#F7931A]/50"
+                  placeholder="e.g. Google"
+                />
+              </div>
+              <div className="space-y-3">
+                <label className="text-xs font-mono text-[#94A3B8] uppercase">Role / Description (Optional)</label>
+                <input 
+                  type="text" 
+                  value={newEventRole} 
+                  onChange={e => setNewEventRole(e.target.value)} 
+                  className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#F7931A]/50"
+                  placeholder="e.g. Software Engineer"
+                  onKeyDown={e => { if (e.key === 'Enter') handleAddCustom(); }}
+                />
+              </div>
+              <div className="flex justify-end gap-2 pt-2">
+                <Button variant="ghost" size="sm" onClick={() => setIsAddingEvent(false)}>Cancel</Button>
+                <Button variant="default" size="sm" onClick={handleAddCustom} disabled={!newEventCompany} className="bg-[#F7931A] text-black hover:bg-[#EA580C]">Save Event</Button>
+              </div>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 gap-6 mt-6">
             {selectedDate && getJobsForDate(selectedDate).map(job => (
               <JobCard 
                 key={job.id} 
@@ -180,6 +261,11 @@ export function CalendarView({
                 onStatusChange={(s) => onStatusChange(job.id, s)} 
               />
             ))}
+            {selectedDate && getJobsForDate(selectedDate).length === 0 && !isAddingEvent && (
+              <div className="py-12 text-center text-[#94A3B8]">
+                No events on this date.
+              </div>
+            )}
           </div>
         </DialogContent>
       </Dialog>

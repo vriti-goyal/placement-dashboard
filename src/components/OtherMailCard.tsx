@@ -22,12 +22,18 @@ export function OtherMailCard({ job, onMoveToJobs, onClick }: OtherMailCardProps
 
   const handleMarkAsRead = (e: React.MouseEvent) => {
     e.stopPropagation();
-    const readMails = JSON.parse(localStorage.getItem("readOtherMails") || "[]");
-    if (!readMails.includes(job.id)) {
-      readMails.push(job.id);
-      localStorage.setItem("readOtherMails", JSON.stringify(readMails));
+    let readMails = JSON.parse(localStorage.getItem("readOtherMails") || "[]");
+    if (isRead) {
+      readMails = readMails.filter((id: string) => id !== job.id);
+      setIsRead(false);
+    } else {
+      if (!readMails.includes(job.id)) {
+        readMails.push(job.id);
+      }
       setIsRead(true);
     }
+    localStorage.setItem("readOtherMails", JSON.stringify(readMails));
+    window.dispatchEvent(new Event('readOtherMailsChanged'));
   };
 
   const handleMoveToJobs = (e: React.MouseEvent) => {
@@ -68,11 +74,15 @@ export function OtherMailCard({ job, onMoveToJobs, onClick }: OtherMailCardProps
       </div>
 
       <div className="w-40 shrink-0 flex items-center justify-end gap-2" onClick={e => e.stopPropagation()}>
-        {!isRead && (
-          <Button variant="ghost" size="icon" onClick={handleMarkAsRead} className="h-8 w-8 text-green-400 hover:bg-green-500/10 hover:text-green-400" title="Mark as Read">
-            <CheckCircle className="w-4 h-4" />
-          </Button>
-        )}
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          onClick={handleMarkAsRead} 
+          className={`h-8 w-8 ${isRead ? 'text-[#94A3B8] hover:text-white' : 'text-green-400 hover:bg-green-500/10 hover:text-green-400'}`} 
+          title={isRead ? "Mark as Unread" : "Mark as Read"}
+        >
+          <CheckCircle className="w-4 h-4" />
+        </Button>
         <Button variant="ghost" size="icon" onClick={handleMoveToJobs} className="h-8 w-8 text-[#94A3B8] hover:text-[#F7931A] hover:bg-[#F7931A]/10" title="Move to Jobs">
           <ArrowLeftRight className="w-4 h-4" />
         </Button>

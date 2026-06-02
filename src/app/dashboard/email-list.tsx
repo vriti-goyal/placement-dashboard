@@ -109,15 +109,24 @@ export default function EmailList({ session }: EmailListProps) {
     if (d) {
       try { setDismissedJobs(JSON.parse(d)); } catch(e){}
     }
+    const cj = localStorage.getItem("customJobs");
+    if (cj) {
+      try { setCustomJobs(JSON.parse(cj)); } catch(e){}
+    }
     const rc = localStorage.getItem("reclassifications");
     if (rc) {
       try { setReclassifications(JSON.parse(rc)); } catch(e){}
     }
-    const rm = localStorage.getItem("readOtherMails");
-    if (rm) {
-      try { setReadOtherMails(JSON.parse(rm)); } catch(e){}
-    }
+    const loadReadMails = () => {
+      const rm = localStorage.getItem("readOtherMails");
+      if (rm) {
+        try { setReadOtherMails(JSON.parse(rm)); } catch(e){}
+      }
+    };
+    loadReadMails();
+    window.addEventListener('readOtherMailsChanged', loadReadMails);
     fetchEmails();
+    return () => window.removeEventListener('readOtherMailsChanged', loadReadMails);
   }, []);
 
   // Firebase status load / migration
@@ -299,8 +308,18 @@ export default function EmailList({ session }: EmailListProps) {
     }
   };
 
+  const [customJobs, setCustomJobs] = useState<ParsedJob[]>([]);
+
+  const handleAddCustomJob = (job: ParsedJob) => {
+    setCustomJobs(prev => {
+      const next = [...prev, job];
+      localStorage.setItem("customJobs", JSON.stringify(next));
+      return next;
+    });
+  };
+
   const { bucketA, bucketB } = useMemo(() => {
-    const a: ParsedJob[] = [];
+    const a: ParsedJob[] = [...customJobs];
     const b: ParsedJob[] = [];
     for (const job of jobs) {
       const manual = reclassifications[job.id];
@@ -335,7 +354,11 @@ export default function EmailList({ session }: EmailListProps) {
     return bucketA.filter(job => {
       // Tab filter
       const status = jobStatuses[job.id] || 'none';
-      if (activeTab !== 'all' && status !== activeTab) return false;
+      if (activeTab === 'companies') {
+        if (!job.company || job.company === 'Unknown') return false;
+      } else if (activeTab !== 'all' && activeTab !== 'other' && status !== activeTab) {
+        return false;
+      }
 
       // Profile CGPA filter
       if (profile.cgpa && job.cgCutoff) {
@@ -514,6 +537,7 @@ export default function EmailList({ session }: EmailListProps) {
                   showDismissed={showDismissed}
                   onToggleShowDismissed={() => setShowDismissed(!showDismissed)}
                   onStatusChange={handleStatusChange}
+                  onAddCustomJob={handleAddCustomJob}
                 />
             </div>
           )}
@@ -536,14 +560,6 @@ export default function EmailList({ session }: EmailListProps) {
                     <div className="w-2 h-8 bg-gradient-to-b from-[#F7931A] to-[#EA580C] rounded-full"></div>
                     Opportunities
                   </h2>
-                  <div className="flex gap-3 text-xs font-mono text-[#94A3B8] mt-2 ml-5">
-                    <span>{counts.placements} Placements</span> • 
-                    <span>{counts.internships} Internships</span> • 
-                    <button onClick={() => {
-                      setShowOtherMails(true);
-                      document.getElementById('other-mails-section')?.scrollIntoView({ behavior: 'smooth' });
-                    }} className="text-[#F7931A] hover:underline cursor-pointer">{counts.other} Other Mails</button>
-                  </div>
                 </div>
                 <div className="flex items-center gap-3 w-full sm:w-auto">
                   <Button
@@ -649,10 +665,19 @@ export default function EmailList({ session }: EmailListProps) {
                     <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full sm:w-auto overflow-x-auto no-scrollbar">
                       <TabsList className="inline-flex h-12 items-center justify-center rounded-xl bg-black/40 p-1 text-[#94A3B8] w-max min-w-full">
                         <TabsTrigger value="all" className="data-[state=active]:bg-[#1E293B] data-[state=active]:text-white rounded-lg px-4 py-2">All</TabsTrigger>
+                        <TabsTrigger value="companies" className="data-[state=active]:bg-[#1E293B] data-[state=active]:text-white rounded-lg px-4 py-2">Companies</TabsTrigger>
                         <TabsTrigger value="interested" className="data-[state=active]:bg-[#1E293B] data-[state=active]:text-white rounded-lg px-4 py-2">Interested</TabsTrigger>
                         <TabsTrigger value="applied" className="data-[state=active]:bg-[#1E293B] data-[state=active]:text-white rounded-lg px-4 py-2">Applied</TabsTrigger>
                         <TabsTrigger value="oa" className="data-[state=active]:bg-[#1E293B] data-[state=active]:text-white rounded-lg px-4 py-2">OA</TabsTrigger>
                         <TabsTrigger value="interview" className="data-[state=active]:bg-[#1E293B] data-[state=active]:text-white rounded-lg px-4 py-2">Interview</TabsTrigger>
+                        <TabsTrigger value="other" className="data-[state=active]:bg-[#1E293B] data-[state=active]:text-white rounded-lg px-4 py-2 flex items-center gap-2">
+                          Other
+                          {bucketB.length - readOtherMails.length > 0 && (
+                            <span className="w-5 h-5 rounded-full bg-[#EA580C] text-white text-[10px] flex items-center justify-center font-bold">
+                              {bucketB.length - readOtherMails.length}
+                            </span>
+                          )}
+                        </TabsTrigger>
                       </TabsList>
                     </Tabs>
                     <div className="text-xs text-[#94A3B8] font-mono px-4 flex flex-wrap gap-4 py-2 sm:py-0">
@@ -664,7 +689,25 @@ export default function EmailList({ session }: EmailListProps) {
                     </div>
                   </div>
 
-                  {loading && !bucketA.length ? (
+                  {activeTab === 'other' ? (
+                     <div className="border border-white/10 rounded-2xl bg-[#0F1115] shadow-lg overflow-hidden flex flex-col divide-y divide-white/5">
+                        {bucketB.length === 0 ? (
+                           <div className="p-24 text-center text-white font-medium text-lg">No other mails found.</div>
+                        ) : (
+                           bucketB.map(job => (
+                             <OtherMailCard 
+                               key={job.id} 
+                               job={job} 
+                               onMoveToJobs={() => handleReclassify(job.id, 'A')} 
+                               onClick={() => {
+                                 setSelectedMessage(job.messages?.[0] || { messageId: 'root', subject: job.subject, date: job.date, body: job.rawBody || '' });
+                                 setSelectedJobData(job);
+                               }}
+                             />
+                           ))
+                        )}
+                     </div>
+                  ) : loading && !bucketA.length ? (
                     <div className="space-y-4">
                       {[1, 2, 3, 4, 5].map(i => <JobListItemSkeleton key={i} />)}
                     </div>
@@ -724,36 +767,6 @@ export default function EmailList({ session }: EmailListProps) {
                     </div>
                   )}
 
-                  {bucketB.length > 0 && (
-                    <div id="other-mails-section" className="mt-12 pt-8 border-t border-white/10">
-                      <button 
-                        onClick={() => setShowOtherMails(!showOtherMails)} 
-                        className="flex items-center gap-3 w-full group focus:outline-none"
-                      >
-                        <h3 className="text-xl font-heading font-bold text-white group-hover:text-[#F7931A] transition-colors flex items-center">
-                          Other Mails
-                          <Badge variant="secondary" className="ml-3 bg-white/10 text-white font-mono">{bucketB.length}</Badge>
-                        </h3>
-                        {showOtherMails ? <ChevronUp className="w-5 h-5 text-[#94A3B8]" /> : <ChevronDown className="w-5 h-5 text-[#94A3B8]" />}
-                      </button>
-
-                      {showOtherMails && (
-                        <div className="mt-6 border border-white/10 rounded-2xl bg-[#0F1115] shadow-lg overflow-hidden flex flex-col divide-y divide-white/5">
-                          {bucketB.map(job => (
-                            <OtherMailCard 
-                              key={job.id} 
-                              job={job} 
-                              onMoveToJobs={() => handleReclassify(job.id, 'A')} 
-                              onClick={() => {
-                                setSelectedMessage(job.messages?.[0] || { messageId: 'root', subject: job.subject, date: job.date, body: job.rawBody || '' });
-                                setSelectedJobData(job);
-                              }}
-                            />
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
                 </div>
               </div>
             </div>
