@@ -1,6 +1,7 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../auth/[...nextauth]/route';
+import { getToken } from 'next-auth/jwt';
 
 // In-memory cache: userId -> { data, timestamp }
 const cache = new Map<string, { data: any; timestamp: number }>();
@@ -11,14 +12,16 @@ const decodeBase64Url = (data: string) => {
   return Buffer.from(normalized, 'base64').toString('utf8');
 };
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   try {
     const session: any = await getServerSession(authOptions);
-    if (!session || !session.accessToken) {
+    const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET });
+
+    if (!session || !token || !token.accessToken) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    if (session.error === "RefreshAccessTokenError") {
+    if (token.error === "RefreshAccessTokenError") {
       return NextResponse.json({ error: 'Token expired and refresh failed' }, { status: 401 });
     }
 
@@ -41,10 +44,10 @@ export async function GET(request: Request) {
       }
     }
 
-    // Fetch message list
-    const listUrl = `https://gmail.googleapis.com/gmail/v1/users/me/messages?q=from:${senderEmail}&maxResults=50`;
+    // Fetch thread list
+    const listUrl = `https://gmail.googleapis.com/gmail/v1/users/me/threads?q=from:${senderEmail}&maxResults=50`;
     const listRes = await fetch(listUrl, {
-      headers: { Authorization: `Bearer ${session.accessToken}` }
+      headers: { Authorization: `Bearer ${token.accessToken}` }
     });
 
     if (!listRes.ok) {
@@ -54,77 +57,89 @@ export async function GET(request: Request) {
       if (listRes.status === 429) {
          return NextResponse.json({ error: 'Gmail API rate limit exceeded. Please try again in a minute.' }, { status: 429 });
       }
-      throw new Error(`Failed to fetch message list: ${listRes.statusText}`);
+      throw new Error(`Failed to fetch thread list: ${listRes.statusText}`);
     }
 
     const listData = await listRes.json();
-    if (!listData.messages || listData.messages.length === 0) {
+    if (!listData.threads || listData.threads.length === 0) {
       const result = { emails: [] };
       cache.set(cacheKey, { data: result, timestamp: Date.now() });
       return NextResponse.json(result);
     }
 
-    // Fetch full messages
+    // Fetch full threads
     const emails = await Promise.all(
-      listData.messages.map(async (msg: any) => {
-        const msgRes = await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/messages/${msg.id}?format=full`, {
-          headers: { Authorization: `Bearer ${session.accessToken}` }
+      listData.threads.map(async (thread: any) => {
+        const threadRes = await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/threads/${thread.id}?format=full`, {
+          headers: { Authorization: `Bearer ${token.accessToken}` }
         });
-        if (!msgRes.ok) return null;
-        const msgData = await msgRes.json();
+        if (!threadRes.ok) return null;
+        const threadData = await threadRes.json();
         
-        // Parse headers
-        const headers = msgData.payload?.headers || [];
-        const subjectHeader = headers.find((h: any) => h.name.toLowerCase() === 'subject');
-        const dateHeader = headers.find((h: any) => h.name.toLowerCase() === 'date');
-        
-        let body = '';
+        if (!threadData.messages || threadData.messages.length === 0) return null;
 
-        const extractBody = (part: any): string => {
-          if (!part) return '';
-          let text = '';
-          let html = '';
+        const parsedMessages = threadData.messages.map((msgData: any) => {
+          // Parse headers
+          const headers = msgData.payload?.headers || [];
+          const subjectHeader = headers.find((h: any) => h.name.toLowerCase() === 'subject');
+          const dateHeader = headers.find((h: any) => h.name.toLowerCase() === 'date');
+          
+          let body = '';
+          let htmlBody = '';
 
-          const traverse = (p: any) => {
-            if (p.mimeType === 'text/plain' && p.body?.data) {
-              text = decodeBase64Url(p.body.data);
-            } else if (p.mimeType === 'text/html' && p.body?.data) {
-              html = decodeBase64Url(p.body.data);
-            }
-            if (p.parts) {
-              p.parts.forEach(traverse);
-            }
+          const extractBody = (part: any): {text: string, html: string} => {
+            if (!part) return {text: '', html: ''};
+            let text = '';
+            let html = '';
+
+            const traverse = (p: any) => {
+              if (p.mimeType === 'text/plain' && p.body?.data) {
+                text = decodeBase64Url(p.body.data);
+              } else if (p.mimeType === 'text/html' && p.body?.data) {
+                html = decodeBase64Url(p.body.data);
+              }
+              if (p.parts) {
+                p.parts.forEach(traverse);
+              }
+            };
+
+            traverse(part);
+            return {text, html};
           };
 
-          traverse(part);
-          if (text) return text;
-          if (html) {
-             return html
-               .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
-               .replace(/<[^>]*>?/gm, ' ')
-               .replace(/\s\s+/g, ' ')
-               .trim();
+          if (msgData.payload?.body?.data) {
+              // single part email
+              const data = decodeBase64Url(msgData.payload.body.data);
+              if (msgData.payload.mimeType === 'text/html') {
+                 htmlBody = data;
+                 body = data.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '').replace(/<[^>]*>?/gm, ' ').replace(/\s\s+/g, ' ').trim();
+              } else {
+                 body = data;
+              }
+          } else {
+             const extracted = extractBody(msgData.payload);
+             htmlBody = extracted.html;
+             body = extracted.text;
+             if (!body && extracted.html) {
+               body = extracted.html.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '').replace(/<[^>]*>?/gm, ' ').replace(/\s\s+/g, ' ').trim();
+             }
           }
-          return '';
-        };
 
-        if (msgData.payload?.body?.data) {
-            // single part email
-            const data = decodeBase64Url(msgData.payload.body.data);
-            if (msgData.payload.mimeType === 'text/html') {
-               body = data.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '').replace(/<[^>]*>?/gm, ' ').replace(/\s\s+/g, ' ').trim();
-            } else {
-               body = data;
-            }
-        } else {
-           body = extractBody(msgData.payload);
-        }
+          return {
+            messageId: msgData.id,
+            subject: subjectHeader ? subjectHeader.value : 'No Subject',
+            date: dateHeader ? dateHeader.value : '',
+            snippet: msgData.snippet || '',
+            body: body,
+            htmlBody: htmlBody || null
+          };
+        });
 
         return {
-          id: msgData.id,
-          subject: subjectHeader ? subjectHeader.value : 'No Subject',
-          date: dateHeader ? dateHeader.value : '',
-          body: body
+          id: threadData.id,
+          subject: parsedMessages[0].subject,
+          date: parsedMessages[0].date,
+          messages: parsedMessages
         };
       })
     );

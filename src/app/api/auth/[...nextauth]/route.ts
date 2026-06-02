@@ -76,8 +76,9 @@ export const authOptions: NextAuthOptions = {
       return refreshAccessToken(token);
     },
     async session({ session, token }: any) {
-      session.accessToken = token.accessToken;
-      session.refreshToken = token.refreshToken;
+      if (session.user) {
+        session.user.id = token.sub;
+      }
       session.error = token.error;
       return session;
     },

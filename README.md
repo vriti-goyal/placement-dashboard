@@ -59,3 +59,32 @@ To enable authentication for this dashboard, you need to configure a Google Clou
 5. Copy the **Client ID** and **Client Secret**.
 6. Open `.env.local` and paste them into `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`.
 7. Generate a secure string for `NEXTAUTH_SECRET` (e.g., `openssl rand -base64 32`) and paste it into `.env.local`.
+
+## Firebase Setup
+
+This dashboard uses Firebase Firestore as its database. To configure it:
+
+1. Go to the [Firebase Console](https://console.firebase.google.com/).
+2. Create a new project (e.g., "TNP Dashboard DB").
+3. In Project Settings > General, register a new Web App.
+4. Copy the Firebase config object and populate the following in your `.env.local`:
+   - `NEXT_PUBLIC_FIREBASE_API_KEY`
+   - `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN`
+   - `NEXT_PUBLIC_FIREBASE_PROJECT_ID`
+   - `NEXT_PUBLIC_FIREBASE_APP_ID`
+5. Enable **Firestore Database** in the Firebase console and start in test mode (or configure appropriate security rules).
+6. Go to Project Settings > Service Accounts.
+7. Click **Generate new private key** and download the JSON file.
+8. Stringify the JSON file contents and paste it into `FIREBASE_SERVICE_ACCOUNT_KEY` in `.env.local`. You can do this in a Node REPL:
+   `JSON.stringify(require('./path/to/service-account.json'))`
+
+## API Key Encryption
+
+The application uses AES-256-GCM encryption to securely store Gemini API keys.
+Generate a 32-byte hex string and add it to your `.env.local`:
+
+```bash
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+```
+
+Set the output as `ENCRYPTION_SECRET` in `.env.local`.

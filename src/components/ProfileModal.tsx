@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Settings, ShieldCheck } from "lucide-react";
+import { Settings, ShieldCheck, User } from "lucide-react";
 
 export interface UserProfile {
   cgpa: string;
@@ -51,12 +51,12 @@ export function ProfileModal({ onProfileUpdate }: ProfileModalProps) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger render={<Button variant="outline" size="sm" className="gap-2 rounded-full shadow-sm border-white/20 text-[#94A3B8] hover:text-white hover:bg-white/10 hover:border-white/40 group" />}>
-        <Settings className="w-4 h-4 group-hover:rotate-90 transition-transform duration-500" />
-        <span className="hidden sm:inline">Preferences</span>
+        <User className="w-4 h-4 transition-transform duration-500" />
+        <span className="hidden sm:inline">Profile</span>
       </DialogTrigger>
       <DialogContent className="sm:max-w-sm bg-[#0F1115] border border-white/10 text-white shadow-[0_0_50px_-10px_rgba(247,147,26,0.2)]">
         <DialogHeader>
-          <DialogTitle className="font-heading text-xl text-white">Your Parameters</DialogTitle>
+          <DialogTitle className="font-heading text-xl text-white">Profile Settings</DialogTitle>
         </DialogHeader>
         <div className="space-y-6 py-4 max-h-[60vh] overflow-y-auto pr-2 no-scrollbar">
           <div className="space-y-2">
