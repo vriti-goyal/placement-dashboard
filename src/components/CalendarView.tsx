@@ -8,7 +8,7 @@ import { ParsedJob } from '@/lib/parser';
 import { JobStatus, JobCard } from './JobCard';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { Button } from './ui/button';
-import { EyeOff, Eye, CalendarClock } from 'lucide-react';
+import { EyeOff, Eye, CalendarClock, List, Calendar as CalendarIcon } from 'lucide-react';
 import { Badge } from './ui/badge';
 
 interface CalendarViewProps {
@@ -55,6 +55,9 @@ export function CalendarView({
   const [isAddingEvent, setIsAddingEvent] = useState(false);
   const [newEventCompany, setNewEventCompany] = useState('');
   const [newEventRole, setNewEventRole] = useState('');
+  
+  // Mobile view toggle
+  const [mobileView, setMobileView] = useState<'agenda' | 'grid'>('agenda');
 
   // Parse dates and filter jobs
   const jobsWithDates = useMemo(() => {
@@ -75,6 +78,20 @@ export function CalendarView({
         return days >= 0 && days <= 14;
       })
       .sort((a, b) => a.parsedDate!.getTime() - b.parsedDate!.getTime());
+  }, [visibleJobs]);
+
+  const groupedAgendaJobs = useMemo(() => {
+    const today = startOfDay(new Date());
+    const upcoming = visibleJobs.filter(j => differenceInDays(j.parsedDate!, today) >= 0)
+      .sort((a, b) => a.parsedDate!.getTime() - b.parsedDate!.getTime());
+    
+    const groups: Record<string, ParsedJob[]> = {};
+    upcoming.forEach(job => {
+      const dateKey = job.parsedDate!.toDateString();
+      if (!groups[dateKey]) groups[dateKey] = [];
+      groups[dateKey].push(job);
+    });
+    return Object.keys(groups).map(k => ({ date: new Date(k), jobs: groups[k] }));
   }, [visibleJobs]);
 
   const getJobsForDate = (date: Date) => {
@@ -121,15 +138,35 @@ export function CalendarView({
   return (
     <div className="flex flex-col lg:flex-row gap-6 items-start">
       <div className="w-full lg:flex-1 bg-[#0F1115] p-6 rounded-2xl border border-white/10 shadow-[0_0_30px_-10px_rgba(247,147,26,0.1)]">
-        <div className="flex items-center justify-between mb-6 pb-4 border-b border-white/10">
-          <h3 className="font-heading font-semibold text-white text-lg">Deadline Ledger</h3>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 pb-4 border-b border-white/10 gap-4">
+          <div className="flex items-center gap-4">
+            <h3 className="font-heading font-semibold text-white text-lg">Deadline Ledger</h3>
+            <div className="flex bg-white/5 rounded-lg p-1 md:hidden">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className={`h-7 px-2 text-xs ${mobileView === 'agenda' ? 'bg-[#1E293B] text-white' : 'text-[#94A3B8]'}`}
+                onClick={() => setMobileView('agenda')}
+              >
+                <List className="w-3 h-3 mr-1" /> Agenda
+              </Button>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className={`h-7 px-2 text-xs ${mobileView === 'grid' ? 'bg-[#1E293B] text-white' : 'text-[#94A3B8]'}`}
+                onClick={() => setMobileView('grid')}
+              >
+                <CalendarIcon className="w-3 h-3 mr-1" /> Grid
+              </Button>
+            </div>
+          </div>
           <Button variant="ghost" size="sm" onClick={onToggleShowDismissed} className="text-xs font-mono text-[#94A3B8] hover:text-white">
             {showDismissed ? <EyeOff className="w-4 h-4 mr-2" /> : <Eye className="w-4 h-4 mr-2" />}
             {showDismissed ? "[HIDE DISMISSED]" : "[SHOW DISMISSED]"}
           </Button>
         </div>
         
-        <div className="calendar-container">
+        <div className={`calendar-container ${mobileView === 'agenda' ? 'hidden md:block' : 'block'}`}>
           <Calendar
             onClickDay={(value) => handleDayClick(value as Date)}
             tileContent={({ date, view }) => {
@@ -151,8 +188,41 @@ export function CalendarView({
               }
               return null;
             }}
-            className="w-full rounded-lg border-none shadow-sm p-4 font-body text-sm bg-transparent text-white"
+            className="w-full rounded-lg border-none shadow-sm p-2 md:p-4 font-body text-xs md:text-sm bg-transparent text-white mobile-calendar-grid"
           />
+        </div>
+
+        <div className={`md:hidden ${mobileView === 'agenda' ? 'block' : 'hidden'}`}>
+          {groupedAgendaJobs.length === 0 ? (
+            <div className="py-12 text-center text-[#94A3B8]">No upcoming deadlines.</div>
+          ) : (
+            <div className="space-y-6">
+              {groupedAgendaJobs.map(group => (
+                <div key={group.date.toISOString()}>
+                  <div className="text-xs font-mono text-[#F7931A] mb-3 uppercase tracking-wider">
+                    {group.date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                  </div>
+                  <div className="space-y-3">
+                    {group.jobs.map(job => (
+                      <div key={job.id} className="bg-black/20 border border-white/10 rounded-xl p-4 flex flex-col gap-2">
+                        <div className="flex justify-between items-start">
+                          <span className="font-heading font-semibold text-white">{job.company || 'Unknown'}</span>
+                          <Button variant="ghost" size="sm" onClick={() => { setSelectedDate(group.date); setIsDialogOpen(true); }} className="h-6 px-2 text-[10px] bg-white/5 hover:bg-white/10">
+                            View
+                          </Button>
+                        </div>
+                        <span className="text-xs text-[#94A3B8] truncate">{job.role}</span>
+                        <div className="mt-1">
+                          <span className={`inline-block w-2 h-2 rounded-full mr-2 ${getDotColor(jobStatuses[job.id] || 'none', group.date)}`} />
+                          <span className="text-xs capitalize text-white/70">{jobStatuses[job.id] || 'None'}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
@@ -209,9 +279,9 @@ export function CalendarView({
       </div>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto bg-[#0F1115] border border-white/10 text-white shadow-[0_0_50px_-10px_rgba(247,147,26,0.2)]">
+        <DialogContent className="max-w-3xl w-full max-h-[85vh] overflow-y-auto bg-[#0F1115] border border-white/10 text-white shadow-[0_0_50px_-10px_rgba(247,147,26,0.2)] md:rounded-xl rounded-t-2xl rounded-b-none md:rounded-b-xl fixed bottom-0 md:bottom-auto md:top-[50%] md:translate-y-[-50%] translate-y-0 transition-transform duration-300 m-0">
           <DialogHeader>
-            <DialogTitle className="font-heading text-2xl text-white flex justify-between items-center pr-8">
+            <DialogTitle className="font-heading text-xl md:text-2xl text-white flex justify-between items-center pr-8">
               <span>Nodes on <span className="text-[#F7931A]">{selectedDate?.toLocaleDateString()}</span></span>
               {!isAddingEvent && (
                 <Button variant="outline" size="sm" onClick={() => setIsAddingEvent(true)} className="border-[#F7931A]/30 text-[#F7931A] hover:bg-[#F7931A]/10">

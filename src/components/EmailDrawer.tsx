@@ -76,10 +76,10 @@ export function EmailDrawer({ isOpen, onClose, message, jobData }: EmailDrawerPr
       <div 
         role="dialog" 
         aria-modal="true"
-        className={`fixed top-0 right-0 bottom-0 w-full md:w-[700px] xl:w-[800px] bg-[#0F1115] border-l border-white/10 shadow-2xl z-50 flex flex-col transform transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}
+        className={`fixed bottom-0 left-0 right-0 top-0 md:left-auto w-full md:w-[380px] lg:w-[480px] bg-[#0F1115] md:border-l border-white/10 shadow-2xl z-50 flex flex-col transform transition-transform duration-300 ease-in-out ${isOpen ? 'translate-y-0 md:translate-x-0' : 'translate-y-full md:translate-y-0 md:translate-x-full'}`}
       >
         {/* Header */}
-        <div className="p-6 border-b border-white/10 shrink-0">
+        <div className="p-6 border-b border-white/10 shrink-0 sticky top-0 bg-[#0F1115] z-10">
           <div className="flex justify-between items-start mb-4">
             <div className="flex-1 pr-4">
               <h2 className="text-2xl font-heading font-bold text-white">{jobData?.company || "Not specified"}</h2>

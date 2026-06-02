@@ -444,59 +444,62 @@ export default function EmailList({ session }: EmailListProps) {
 
       {isSidebarOpen && (
         <div 
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden" 
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 md:hidden" 
           onClick={() => setIsSidebarOpen(false)} 
         />
       )}
 
-      <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-[#0F1115] border-r border-white/10 flex flex-col transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:h-full ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-        <div className="p-6 flex items-center justify-between lg:justify-center">
+      <aside className={`fixed inset-y-0 left-0 z-50 w-full md:w-16 lg:w-64 bg-[#0F1115] border-r border-white/10 flex flex-col transform transition-transform duration-300 ease-in-out md:translate-x-0 md:static md:h-full ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+        <div className="p-6 flex items-center justify-between md:justify-center lg:justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#F7931A] to-[#EA580C] flex items-center justify-center shadow-[0_0_15px_rgba(247,147,26,0.5)]">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#F7931A] to-[#EA580C] flex items-center justify-center shrink-0 shadow-[0_0_15px_rgba(247,147,26,0.5)]">
               <span className="font-heading font-bold text-white text-lg">T</span>
             </div>
-            <span className="font-heading font-bold text-xl tracking-tight">TNP Dash</span>
+            <span className="font-heading font-bold text-xl tracking-tight md:hidden lg:inline">TNP Dash</span>
           </div>
-          <Button variant="ghost" size="icon" className="lg:hidden text-[#94A3B8] hover:text-white" onClick={() => setIsSidebarOpen(false)}>
+          <Button variant="ghost" size="icon" className="md:hidden text-[#94A3B8] hover:text-white" onClick={() => setIsSidebarOpen(false)}>
             <X className="w-5 h-5" />
           </Button>
         </div>
 
-        <div className="px-4 py-2 flex flex-col gap-2 flex-1">
+        <div className="px-4 py-2 flex flex-col gap-2 flex-1 items-center lg:items-stretch">
           <Button 
             variant="ghost" 
-            className={`w-full justify-start gap-3 px-4 py-6 rounded-xl transition-all ${activeSidebarView === 'jobs' ? 'bg-[#F7931A]/10 text-[#F7931A] hover:bg-[#F7931A]/20 hover:text-[#F7931A]' : 'text-[#94A3B8] hover:text-white hover:bg-white/5'}`}
+            className={`w-full justify-start md:justify-center lg:justify-start gap-3 px-4 py-6 rounded-xl transition-all ${activeSidebarView === 'jobs' ? 'bg-[#F7931A]/10 text-[#F7931A] hover:bg-[#F7931A]/20 hover:text-[#F7931A]' : 'text-[#94A3B8] hover:text-white hover:bg-white/5'}`}
             onClick={() => { setActiveSidebarView('jobs'); setIsSidebarOpen(false); }}
+            title="Jobs"
           >
-            <Briefcase className="w-5 h-5" />
-            <span className="font-medium text-base">Jobs</span>
+            <Briefcase className="w-5 h-5 shrink-0" />
+            <span className="font-medium text-base md:hidden lg:inline">Jobs</span>
           </Button>
           <Button 
             variant="ghost" 
-            className={`w-full justify-start gap-3 px-4 py-6 rounded-xl transition-all ${activeSidebarView === 'calendar' ? 'bg-[#F7931A]/10 text-[#F7931A] hover:bg-[#F7931A]/20 hover:text-[#F7931A]' : 'text-[#94A3B8] hover:text-white hover:bg-white/5'}`}
+            className={`w-full justify-start md:justify-center lg:justify-start gap-3 px-4 py-6 rounded-xl transition-all ${activeSidebarView === 'calendar' ? 'bg-[#F7931A]/10 text-[#F7931A] hover:bg-[#F7931A]/20 hover:text-[#F7931A]' : 'text-[#94A3B8] hover:text-white hover:bg-white/5'}`}
             onClick={() => { setActiveSidebarView('calendar'); setIsSidebarOpen(false); }}
+            title="Calendar"
           >
-            <CalendarIcon className="w-5 h-5" />
-            <span className="font-medium text-base">Calendar</span>
+            <CalendarIcon className="w-5 h-5 shrink-0" />
+            <span className="font-medium text-base md:hidden lg:inline">Calendar</span>
           </Button>
         </div>
 
-        <div className="p-4 mt-auto">
+        <div className="p-4 mt-auto flex flex-col items-center lg:items-stretch">
           <div className="w-full h-px bg-white/10 mb-4"></div>
           <Button 
             variant="ghost" 
-            className={`w-full justify-start gap-3 px-4 py-6 rounded-xl transition-all ${activeSidebarView === 'settings' ? 'bg-[#F7931A]/10 text-[#F7931A] hover:bg-[#F7931A]/20 hover:text-[#F7931A]' : 'text-[#94A3B8] hover:text-white hover:bg-white/5'}`}
+            className={`w-full justify-start md:justify-center lg:justify-start gap-3 px-4 py-6 rounded-xl transition-all ${activeSidebarView === 'settings' ? 'bg-[#F7931A]/10 text-[#F7931A] hover:bg-[#F7931A]/20 hover:text-[#F7931A]' : 'text-[#94A3B8] hover:text-white hover:bg-white/5'}`}
             onClick={() => { setActiveSidebarView('settings'); setIsSidebarOpen(false); }}
+            title="Settings"
           >
-            <SettingsIcon className="w-5 h-5" />
-            <span className="font-medium text-base">Settings</span>
+            <SettingsIcon className="w-5 h-5 shrink-0" />
+            <span className="font-medium text-base md:hidden lg:inline">Settings</span>
           </Button>
           
           {session && (
-            <div className="mt-6 flex items-center justify-between px-2">
-              <div className="flex flex-col truncate pr-2">
-                <span className="text-sm font-medium text-white truncate">{session.user?.name}</span>
-                <span className="text-xs text-[#94A3B8] truncate">{session.user?.email}</span>
+            <div className="mt-6 flex items-center justify-between lg:px-2 flex-col lg:flex-row gap-4 lg:gap-0">
+              <div className="flex flex-col truncate pr-2 md:hidden lg:flex items-center lg:items-start text-center lg:text-left">
+                <span className="text-sm font-medium text-white truncate w-full">{session.user?.name}</span>
+                <span className="text-xs text-[#94A3B8] truncate w-full">{session.user?.email}</span>
               </div>
               <LogoutButton />
             </div>
@@ -504,8 +507,8 @@ export default function EmailList({ session }: EmailListProps) {
         </div>
       </aside>
 
-      <div className="flex-1 flex flex-col h-full min-w-0">
-        <div className="lg:hidden flex items-center justify-between p-4 border-b border-white/10 bg-[#0F1115]/80 backdrop-blur-md sticky top-0 z-30">
+      <div className="flex-1 flex flex-col h-full min-w-0 relative">
+        <div className="md:hidden flex items-center justify-between p-4 border-b border-white/10 bg-[#0F1115]/80 backdrop-blur-md sticky top-0 z-30">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#F7931A] to-[#EA580C] flex items-center justify-center shadow-[0_0_15px_rgba(247,147,26,0.5)]">
               <span className="font-heading font-bold text-white text-lg">T</span>
@@ -564,10 +567,16 @@ export default function EmailList({ session }: EmailListProps) {
                 <div className="flex items-center gap-3 w-full sm:w-auto">
                   <Button
                     variant="outline"
-                    className="lg:hidden w-full sm:w-auto border-white/20 text-white"
+                    className="md:hidden w-full sm:w-auto border-white/20 text-white"
                     onClick={() => setIsFilterOpen(true)}
                   >
-                    <Filter className="w-4 h-4 mr-2 text-[#F7931A]" /> Filters
+                    <Filter className="w-4 h-4 mr-2 text-[#F7931A]" /> 
+                    Filters
+                    {(debouncedRoleSearch || debouncedMinStipend || techFilter !== 'all') && (
+                      <Badge className="ml-2 bg-[#F7931A] text-black h-5 px-1.5 min-w-[20px] rounded-full text-[10px]">
+                        {[debouncedRoleSearch, debouncedMinStipend, techFilter !== 'all'].filter(Boolean).length}
+                      </Badge>
+                    )}
                   </Button>
                   <Button 
                     onClick={() => fetchEmails(true)} 
@@ -581,72 +590,78 @@ export default function EmailList({ session }: EmailListProps) {
                 </div>
               </div>
 
-              <div className="flex flex-col lg:flex-row gap-8 relative">
+              <div className="flex flex-col gap-8 relative">
                 {isFilterOpen && (
                   <div 
-                    className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden" 
+                    className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 md:hidden" 
                     onClick={() => setIsFilterOpen(false)} 
                   />
                 )}
                 
-                <div className={`fixed inset-y-0 right-0 z-50 w-80 bg-[#0F1115] shadow-2xl p-6 border-l border-white/10 transform transition-transform duration-300 ease-in-out lg:relative lg:translate-x-0 lg:w-72 lg:rounded-2xl lg:border lg:h-fit ${isFilterOpen ? 'translate-x-0' : 'translate-x-full'}`}>
-                  <div className="flex items-center justify-between mb-8 border-b border-white/10 pb-4">
-                    <h3 className="font-heading font-semibold text-white text-lg">Filters</h3>
-                    <div className="flex items-center gap-2">
+                <div className={`fixed bottom-0 left-0 right-0 z-50 w-full bg-[#0F1115] shadow-2xl p-6 border-t border-white/10 transform transition-transform duration-300 ease-in-out rounded-t-2xl md:relative md:translate-y-0 md:rounded-2xl md:border md:w-full md:p-4 ${isFilterOpen ? 'translate-y-0' : 'translate-y-full'}`}>
+                  <div className="flex items-center justify-between mb-4 md:mb-0 md:border-b-0 border-b border-white/10 pb-4 md:pb-0">
+                    <h3 className="font-heading font-semibold text-white text-lg md:hidden">Filters</h3>
+                    <div className="flex items-center gap-2 md:w-full md:justify-between">
+                      <span className="hidden md:inline-flex font-heading font-semibold text-white text-sm items-center gap-2"><Filter className="w-4 h-4 text-[#F7931A]"/> Filters</span>
                       <Button variant="ghost" size="sm" onClick={clearFilters} className="h-8 px-2 text-xs text-[#94A3B8] hover:text-white">
                         <FilterX className="w-3 h-3 mr-1" /> Clear
                       </Button>
-                      <Button variant="ghost" size="icon" className="lg:hidden h-8 w-8 text-[#94A3B8] hover:text-white" onClick={() => setIsFilterOpen(false)}>
+                      <Button variant="ghost" size="icon" className="md:hidden h-8 w-8 text-[#94A3B8] hover:text-white" onClick={() => setIsFilterOpen(false)}>
                         <X className="w-4 h-4" />
                       </Button>
                     </div>
                   </div>
 
-                  <div className="space-y-6">
-                    <div className="space-y-3">
-                      <Label className="text-xs text-[#F7931A] font-mono uppercase tracking-widest">Role Category</Label>
+                  <div className="space-y-6 md:space-y-0 md:flex md:flex-wrap md:gap-4 md:items-end mt-4">
+                    <div className="space-y-3 md:space-y-1.5 md:flex-1 md:min-w-[200px]">
+                      <Label className="text-xs text-[#F7931A] font-mono uppercase tracking-widest md:text-[10px]">Role Category</Label>
                       <Tabs value={techFilter} onValueChange={(val: any) => setTechFilter(val)} className="w-full">
-                        <TabsList className="w-full bg-black/40 border border-white/5 rounded-xl h-10 p-1 flex">
-                          <TabsTrigger value="all" className="flex-1 text-xs data-[state=active]:bg-[#1E293B] data-[state=active]:text-white rounded-lg">All Roles</TabsTrigger>
-                          <TabsTrigger value="tech" className="flex-1 text-xs data-[state=active]:bg-[#1E293B] data-[state=active]:text-white rounded-lg">Tech</TabsTrigger>
-                          <TabsTrigger value="non-tech" className="flex-1 text-xs data-[state=active]:bg-[#1E293B] data-[state=active]:text-white rounded-lg">Non-Tech</TabsTrigger>
+                        <TabsList className="w-full bg-black/40 border border-white/5 rounded-xl md:rounded-lg h-10 p-1 flex">
+                          <TabsTrigger value="all" className="flex-1 text-xs data-[state=active]:bg-[#1E293B] data-[state=active]:text-white rounded-lg md:rounded-md">All Roles</TabsTrigger>
+                          <TabsTrigger value="tech" className="flex-1 text-xs data-[state=active]:bg-[#1E293B] data-[state=active]:text-white rounded-lg md:rounded-md">Tech</TabsTrigger>
+                          <TabsTrigger value="non-tech" className="flex-1 text-xs data-[state=active]:bg-[#1E293B] data-[state=active]:text-white rounded-lg md:rounded-md">Non-Tech</TabsTrigger>
                         </TabsList>
                       </Tabs>
                     </div>
 
-                    <div className="space-y-3">
-                      <Label className="text-xs text-[#F7931A] font-mono uppercase tracking-widest">Role Search</Label>
+                    <div className="space-y-3 md:space-y-1.5 md:flex-1 md:min-w-[200px]">
+                      <Label className="text-xs text-[#F7931A] font-mono uppercase tracking-widest md:text-[10px]">Role Search</Label>
                       <div className="relative">
-                        <Search className="w-4 h-4 absolute left-3 top-4 text-[#94A3B8]" />
+                        <Search className="w-4 h-4 absolute left-3 top-4 md:top-3 text-[#94A3B8]" />
                         <Input 
                           placeholder="e.g. SDE" 
                           value={roleSearch} 
                           onChange={e => setRoleSearch(e.target.value)}
-                          className="pl-10 h-12"
+                          className="pl-10 h-12 md:h-10"
                         />
                       </div>
                     </div>
 
-                    <div className="space-y-3">
-                      <Label className="text-xs text-[#F7931A] font-mono uppercase tracking-widest">Min Stipend</Label>
+                    <div className="space-y-3 md:space-y-1.5 md:w-[150px]">
+                      <Label className="text-xs text-[#F7931A] font-mono uppercase tracking-widest md:text-[10px]">Min Stipend</Label>
                       <div className="relative">
-                        <DollarSign className="w-4 h-4 absolute left-3 top-4 text-[#94A3B8]" />
+                        <DollarSign className="w-4 h-4 absolute left-3 top-4 md:top-3 text-[#94A3B8]" />
                         <Input 
                           placeholder="e.g. 40000" 
                           value={minStipend} 
                           onChange={e => setMinStipend(e.target.value)}
-                          className="pl-10 h-12"
+                          className="pl-10 h-12 md:h-10"
                         />
                       </div>
                     </div>
 
                     {profile.cgpa || profile.branch ? (
-                      <div className="pt-6 mt-6 border-t border-white/10">
-                        <Label className="text-xs text-[#94A3B8] font-mono uppercase tracking-widest mb-3 block">Active Profile Node</Label>
-                        {profile.cgpa && <div className="text-sm font-mono text-[#FFD600] bg-[#FFD600]/10 border border-[#FFD600]/20 px-3 py-1.5 rounded-lg inline-block mb-2 mr-2">CGPA &ge; {profile.cgpa}</div>}
-                        {profile.branch && <div className="text-sm font-mono text-white bg-white/5 border border-white/10 px-3 py-1.5 rounded-lg inline-block">Branch: {profile.branch}</div>}
+                      <div className="pt-6 mt-6 md:pt-0 md:mt-0 border-t border-white/10 md:border-t-0 md:w-full">
+                        <Label className="text-xs text-[#94A3B8] font-mono uppercase tracking-widest md:text-[10px] mb-3 md:mb-1 block">Active Profile Node</Label>
+                        {profile.cgpa && <div className="text-sm md:text-xs font-mono text-[#FFD600] bg-[#FFD600]/10 border border-[#FFD600]/20 px-3 md:px-2 py-1.5 md:py-1 rounded-lg md:rounded inline-block mb-2 mr-2">CGPA &ge; {profile.cgpa}</div>}
+                        {profile.branch && <div className="text-sm md:text-xs font-mono text-white bg-white/5 border border-white/10 px-3 md:px-2 py-1.5 md:py-1 rounded-lg md:rounded inline-block">Branch: {profile.branch}</div>}
                       </div>
                     ) : null}
+                  </div>
+                  <div className="mt-6 md:hidden">
+                    <Button className="w-full bg-[#F7931A] text-black font-semibold hover:bg-[#EA580C] h-12" onClick={() => setIsFilterOpen(false)}>
+                      Apply Filters
+                    </Button>
                   </div>
                 </div>
 
@@ -726,7 +741,29 @@ export default function EmailList({ session }: EmailListProps) {
                     </div>
                   ) : (
                     <div className="border border-white/10 rounded-2xl bg-[#0F1115] shadow-lg overflow-hidden flex flex-col">
-                      <div className="flex items-center gap-4 p-4 border-b border-white/10 bg-black/40 sticky top-0 z-10 text-xs font-mono text-[#94A3B8] uppercase tracking-wider">
+                      {/* Mobile Sort By Header */}
+                      <div className="md:hidden p-3 border-b border-white/10 bg-black/40 flex justify-end">
+                        <div className="flex items-center gap-2 text-xs text-[#94A3B8] font-mono">
+                          <span>Sort by:</span>
+                          <select 
+                            className="bg-transparent border border-white/20 rounded px-2 py-1 text-white outline-none focus:border-[#F7931A]"
+                            value={`${sortBy}-${sortOrder}`}
+                            onChange={(e) => {
+                              const [s, o] = e.target.value.split('-');
+                              setSortBy(s as any);
+                              setSortOrder(o as any);
+                            }}
+                          >
+                            <option value="deadline-asc" className="bg-[#0F1115]">Deadline (Earliest)</option>
+                            <option value="deadline-desc" className="bg-[#0F1115]">Deadline (Latest)</option>
+                            <option value="company-asc" className="bg-[#0F1115]">Company (A-Z)</option>
+                            <option value="company-desc" className="bg-[#0F1115]">Company (Z-A)</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      {/* Desktop Grid Header */}
+                      <div className="hidden md:flex items-center gap-4 p-4 border-b border-white/10 bg-black/40 sticky top-0 z-10 text-xs font-mono text-[#94A3B8] uppercase tracking-wider">
                         <div 
                           className="flex-1 w-[30%] min-w-0 flex items-center gap-2 cursor-pointer hover:text-white"
                           onClick={() => {

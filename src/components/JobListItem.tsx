@@ -63,57 +63,84 @@ export function JobListItem({ job, status, onStatusChange, onClick }: JobListIte
 
   return (
     <div 
-      className="flex items-center gap-4 p-4 border-b border-white/5 bg-[#0F1115] hover:bg-white/5 transition-colors cursor-pointer group"
+      className="flex items-center p-4 border-b border-white/5 bg-[#0F1115] hover:bg-white/5 transition-colors cursor-pointer group"
       onClick={onClick}
     >
-      <div className="flex-1 w-[30%] min-w-0 flex items-center gap-2">
-        <span className="font-heading font-bold text-white truncate group-hover:text-[#F7931A] transition-colors">
-          {job.company || "Not specified"}
-        </span>
-        {job.messages && job.messages.length > 1 && (
-          <Badge variant="outline" className="bg-white/5 text-[#94A3B8] border-white/10 shrink-0 text-[10px] h-5 px-1.5 font-mono">
-            ↩ {job.messages.length - 1}
-          </Badge>
-        )}
+      <div className="flex flex-col md:flex-row flex-1 min-w-0 md:items-center gap-2 md:gap-4">
+        {/* Mobile Line 1: Company + Dropdown | Desktop: Company */}
+        <div className="flex items-center justify-between md:w-[30%] shrink-0">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="font-heading font-bold text-white truncate group-hover:text-[#F7931A] transition-colors">
+              {job.company || "Not specified"}
+            </span>
+            {job.messages && job.messages.length > 1 && (
+              <Badge variant="outline" className="bg-white/5 text-[#94A3B8] border-white/10 shrink-0 text-[10px] h-5 px-1.5 font-mono hidden md:inline-flex">
+                ↩ {job.messages.length - 1}
+              </Badge>
+            )}
+          </div>
+          <div className="md:hidden shrink-0 ml-2" onClick={e => e.stopPropagation()}>
+            <select
+              value={status}
+              onChange={(e) => onStatusChange(e.target.value as JobStatus)}
+              className={`h-8 rounded-lg text-xs font-medium px-2 outline-none cursor-pointer border ${getStatusColor(status)}`}
+            >
+              <option value="none" className="bg-[#0F1115] text-white">None</option>
+              <option value="interested" className="bg-[#0F1115] text-[#FFD600]">Interested</option>
+              <option value="applied" className="bg-[#0F1115] text-green-400">Applied</option>
+              <option value="oa" className="bg-[#0F1115] text-[#EA580C]">OA Received</option>
+              <option value="interview" className="bg-[#0F1115] text-purple-400">Interview</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Mobile Line 2: Role + Deadline | Desktop: Role */}
+        <div className="flex items-center justify-between md:flex-1 min-w-0 md:w-[25%] mt-1 md:mt-0">
+          <span className="text-sm font-medium text-[#94A3B8] md:max-w-[120px] lg:max-w-none truncate block">
+            {job.role || "Role not specified"}
+          </span>
+          <div className="md:hidden shrink-0 ml-2">
+            <span className={`text-xs font-mono font-medium ${getDeadlineColor(job.deadline)}`}>
+              {formatDeadline(job.deadline)}
+            </span>
+          </div>
+        </div>
+
+        {/* Desktop Only: CG */}
+        <div className="hidden md:flex w-16 shrink-0 justify-center">
+          {job.cgCutoff ? (
+            <Badge variant="outline" className="bg-[#FFD600]/10 text-[#FFD600] border-[#FFD600]/30 font-mono text-[10px] px-1.5 h-5">
+              {job.cgCutoff}
+            </Badge>
+          ) : (
+            <span className="text-xs text-white/30 font-mono">-</span>
+          )}
+        </div>
+
+        {/* Desktop Only: Deadline */}
+        <div className="hidden md:flex w-24 shrink-0 justify-center">
+          <span className={`text-xs font-mono font-medium ${getDeadlineColor(job.deadline)}`}>
+            {formatDeadline(job.deadline)}
+          </span>
+        </div>
+
+        {/* Desktop Only: Dropdown */}
+        <div className="hidden md:flex w-32 shrink-0 justify-end" onClick={e => e.stopPropagation()}>
+          <select
+            value={status}
+            onChange={(e) => onStatusChange(e.target.value as JobStatus)}
+            className={`h-8 w-full rounded-lg text-xs font-medium px-2 outline-none appearance-none cursor-pointer border ${getStatusColor(status)}`}
+          >
+            <option value="none" className="bg-[#0F1115] text-white">None</option>
+            <option value="interested" className="bg-[#0F1115] text-[#FFD600]">Interested</option>
+            <option value="applied" className="bg-[#0F1115] text-green-400">Applied</option>
+            <option value="oa" className="bg-[#0F1115] text-[#EA580C]">OA Received</option>
+            <option value="interview" className="bg-[#0F1115] text-purple-400">Interview</option>
+          </select>
+        </div>
       </div>
 
-      <div className="flex-1 w-[25%] min-w-0">
-        <span className="text-sm font-medium text-[#94A3B8] truncate block">
-          {job.role || "Role not specified"}
-        </span>
-      </div>
-
-      <div className="w-16 shrink-0 flex justify-center">
-        {job.cgCutoff ? (
-          <Badge variant="outline" className="bg-[#FFD600]/10 text-[#FFD600] border-[#FFD600]/30 font-mono text-[10px] px-1.5 h-5">
-            {job.cgCutoff}
-          </Badge>
-        ) : (
-          <span className="text-xs text-white/30 font-mono">-</span>
-        )}
-      </div>
-
-      <div className="w-24 shrink-0 flex justify-center">
-        <span className={`text-xs font-mono font-medium ${getDeadlineColor(job.deadline)}`}>
-          {formatDeadline(job.deadline)}
-        </span>
-      </div>
-
-      <div className="w-32 shrink-0 flex justify-end" onClick={e => e.stopPropagation()}>
-        <select
-          value={status}
-          onChange={(e) => onStatusChange(e.target.value as JobStatus)}
-          className={`h-8 w-full rounded-lg text-xs font-medium px-2 outline-none appearance-none cursor-pointer border ${getStatusColor(status)}`}
-        >
-          <option value="none" className="bg-[#0F1115] text-white">None</option>
-          <option value="interested" className="bg-[#0F1115] text-[#FFD600]">Interested</option>
-          <option value="applied" className="bg-[#0F1115] text-green-400">Applied</option>
-          <option value="oa" className="bg-[#0F1115] text-[#EA580C]">OA Received</option>
-          <option value="interview" className="bg-[#0F1115] text-purple-400">Interview</option>
-        </select>
-      </div>
-
-      <div className="w-8 shrink-0 flex justify-end text-[#94A3B8] group-hover:text-[#F7931A] transition-colors">
+      <div className="w-8 shrink-0 flex justify-end text-[#94A3B8] group-hover:text-[#F7931A] transition-colors ml-2 md:ml-0">
         <ChevronRight className="w-5 h-5" />
       </div>
     </div>

@@ -262,7 +262,7 @@ export function SettingsView({ profile, onProfileUpdate }: SettingsViewProps) {
           </div>
         ) : (
           <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <Label htmlFor="cgpa" className="font-mono text-white/50 text-xs tracking-widest uppercase">CGPA</Label>
                 <Input 
@@ -295,7 +295,7 @@ export function SettingsView({ profile, onProfileUpdate }: SettingsViewProps) {
                 <p className="text-xs text-[#94A3B8]">Filters opportunities by eligible node branches.</p>
               </div>
 
-              <div className="space-y-2 md:col-span-2 max-w-sm">
+              <div className="space-y-2 lg:col-span-2 max-w-sm">
                 <Label htmlFor="backlogs" className="font-mono text-white/50 text-xs tracking-widest uppercase">Active Backlogs</Label>
                 <Input 
                   id="backlogs" 
@@ -309,11 +309,11 @@ export function SettingsView({ profile, onProfileUpdate }: SettingsViewProps) {
               </div>
             </div>
 
-            <div className="flex items-center gap-4 pt-4 border-t border-white/10 mt-6">
+            <div className="flex flex-col sm:flex-row items-center gap-4 pt-4 border-t border-white/10 mt-6">
               <Button 
                 onClick={handleSavePreferences} 
                 disabled={savingPrefs}
-                className="group border border-[#F7931A]/30 hover:border-[#F7931A] hover:shadow-[0_0_15px_rgba(247,147,26,0.3)] bg-transparent text-white px-8 h-11"
+                className="group border border-[#F7931A]/30 hover:border-[#F7931A] hover:shadow-[0_0_15px_rgba(247,147,26,0.3)] bg-transparent text-white px-8 h-11 w-full sm:w-auto"
               >
                 {savingPrefs ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
                 <span className="group-hover:text-[#F7931A] transition-colors">Save Preferences</span>
@@ -376,11 +376,11 @@ export function SettingsView({ profile, onProfileUpdate }: SettingsViewProps) {
                   </p>
                 </div>
 
-                <div className="flex items-center gap-4 pt-2">
+                <div className="flex flex-col sm:flex-row items-center gap-4 pt-2">
                   <Button 
                     onClick={handleSaveGeminiKey} 
                     disabled={savingKey || !geminiKeyInput.trim()}
-                    className="bg-purple-600 hover:bg-purple-700 text-white h-11 px-8"
+                    className="bg-purple-600 hover:bg-purple-700 text-white h-11 px-8 w-full sm:w-auto"
                   >
                     {savingKey ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
                     Save Key
@@ -415,7 +415,7 @@ export function SettingsView({ profile, onProfileUpdate }: SettingsViewProps) {
             <p className="text-sm text-[#94A3B8] leading-relaxed">
               To get your CallMeBot API key, send <strong className="text-white">I allow callmebot to send me messages</strong> to <strong className="text-white">+34 644 59 79 13</strong> on WhatsApp. You'll receive your API key in reply.
             </p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <Label htmlFor="phone" className="font-mono text-[#25D366] text-xs tracking-widest uppercase">Phone Number</Label>
                 <Input 
@@ -452,11 +452,11 @@ export function SettingsView({ profile, onProfileUpdate }: SettingsViewProps) {
             </div>
 
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 pt-4 border-t border-white/10 mt-6">
-              <div className="flex items-center gap-4">
+              <div className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">
                 <Button 
                   onClick={handleSaveReminders} 
                   disabled={savingReminders}
-                  className="bg-[#25D366] hover:bg-[#20bd5a] text-black font-semibold px-8 h-11"
+                  className="bg-[#25D366] hover:bg-[#20bd5a] text-black font-semibold px-8 h-11 w-full sm:w-auto"
                 >
                   {savingReminders ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
                   Save Settings
@@ -465,7 +465,7 @@ export function SettingsView({ profile, onProfileUpdate }: SettingsViewProps) {
                   variant="outline"
                   onClick={handleTestReminder} 
                   disabled={testingReminder || !hasReminderKey}
-                  className="border-white/20 text-white hover:bg-white/5 h-11"
+                  className="border-white/20 text-white hover:bg-white/5 h-11 w-full sm:w-auto"
                 >
                   {testingReminder ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
                   Send Test Message
