@@ -1,25 +1,30 @@
 "use client";
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
-import { differenceInDays, isSameDay, isToday, isTomorrow, startOfDay } from 'date-fns';
+import { differenceInDays, isSameDay, isToday, startOfDay, format } from 'date-fns';
 import { ParsedJob } from '@/lib/parser';
 import { JobStatus, JobCard } from './JobCard';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { Button } from './ui/button';
-import { EyeOff, Eye, CalendarClock, List, Calendar as CalendarIcon } from 'lucide-react';
+import { EyeOff, Eye, CalendarClock, Pencil, Check, X, Calendar as CalendarIcon, Clock } from 'lucide-react';
 import { Badge } from './ui/badge';
+import { Input } from './ui/input';
 
 interface CalendarViewProps {
   jobs: ParsedJob[];
   jobStatuses: Record<string, JobStatus>;
+  taskTimes: Record<string, { time: string }>;
+  userId?: string;
   dismissedJobs: string[];
   onDismiss: (id: string) => void;
   showDismissed: boolean;
   onToggleShowDismissed: () => void;
   onStatusChange: (id: string, status: JobStatus) => void;
   onAddCustomJob?: (job: ParsedJob) => void;
+  onTaskTimeChange: (id: string, time: string) => void;
+  onViewJob: (job: ParsedJob) => void;
 }
 
 export function parseDeadlineDate(dateStr: string | null): Date | null {
@@ -37,29 +42,108 @@ export function parseDeadlineDate(dateStr: string | null): Date | null {
   return null;
 }
 
+function extractTime(text: string): string | null {
+  if (!text) return null;
+  const match = text.match(/\b(1[0-2]|0?[1-9])(?::([0-5][0-9]))?\s*([AP]M)\b|\b([01]?[0-9]|2[0-3]):([0-5][0-9])\b/i);
+  if (match) return match[0];
+  const simpleMatch = text.match(/\bat\s*(1[0-2]|0?[1-9])\s*([AP]M)\b/i);
+  if (simpleMatch) return `${simpleMatch[1]} ${simpleMatch[2]}`;
+  return null;
+}
+
+function TaskItem({ 
+  job, 
+  status, 
+  timeData, 
+  onSaveTime, 
+  onView 
+}: { 
+  job: ParsedJob, 
+  status: JobStatus, 
+  timeData: { time: string } | undefined, 
+  onSaveTime: (time: string) => void,
+  onView: () => void 
+}) {
+  const [isEditingTime, setIsEditingTime] = useState(false);
+  const [editTimeVal, setEditTimeVal] = useState(timeData?.time || '');
+
+  const extractedTime = useMemo(() => extractTime(job.rawBody), [job.rawBody]);
+  const displayTime = timeData?.time || extractedTime;
+
+  const handleSave = () => {
+    onSaveTime(editTimeVal);
+    setIsEditingTime(false);
+  };
+
+  return (
+    <div className="bg-black/20 border border-white/10 rounded-xl p-4 flex flex-col gap-3 shadow-sm hover:border-[#F7931A]/30 transition-colors">
+      <div className="flex justify-between items-start gap-2">
+        <div className="min-w-0">
+          <div className="font-heading font-semibold text-white truncate">{job.company || 'Unknown Node'}</div>
+          <div className="text-xs text-[#94A3B8] truncate">{job.role || 'No Function Defined'}</div>
+        </div>
+        <Badge className={`text-[10px] font-mono tracking-wider whitespace-nowrap shrink-0 ${status === 'interview' ? 'bg-purple-500 hover:bg-purple-600' : 'bg-amber-500 hover:bg-amber-600'} text-white border-none`}>
+          {status === 'interview' ? 'INTERVIEW' : 'OA'}
+        </Badge>
+      </div>
+
+      <div className="flex items-center justify-between mt-1">
+        <div className="flex items-center gap-2">
+          <Clock className="w-4 h-4 text-[#94A3B8]" />
+          {isEditingTime ? (
+            <div className="flex items-center gap-1">
+              <input
+                type="time"
+                value={editTimeVal}
+                onChange={(e) => setEditTimeVal(e.target.value)}
+                className="bg-black/40 border border-white/20 rounded px-2 py-1 text-xs text-white outline-none focus:border-[#F7931A]"
+              />
+              <Button variant="ghost" size="icon" onClick={handleSave} className="h-6 w-6 text-green-400 hover:text-green-300 hover:bg-green-400/10">
+                <Check className="w-3 h-3" />
+              </Button>
+              <Button variant="ghost" size="icon" onClick={() => setIsEditingTime(false)} className="h-6 w-6 text-red-400 hover:text-red-300 hover:bg-red-400/10">
+                <X className="w-3 h-3" />
+              </Button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 group">
+              <span className={`text-xs ${displayTime ? 'text-white' : 'text-[#94A3B8]'}`}>
+                {displayTime || 'Time not set'}
+              </span>
+              <button onClick={() => setIsEditingTime(true)} className="opacity-0 group-hover:opacity-100 transition-opacity text-[#94A3B8] hover:text-[#F7931A]">
+                <Pencil className="w-3 h-3" />
+              </button>
+            </div>
+          )}
+        </div>
+
+        <Button variant="ghost" size="sm" onClick={onView} className="h-7 px-3 text-[10px] font-mono bg-white/5 hover:bg-white/10 border border-white/5">
+          VIEW
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 export function CalendarView({
   jobs,
   jobStatuses,
+  taskTimes,
+  userId,
   dismissedJobs,
   onDismiss,
   showDismissed,
   onToggleShowDismissed,
   onStatusChange,
-  onAddCustomJob
+  onAddCustomJob,
+  onTaskTimeChange,
+  onViewJob
 }: CalendarViewProps) {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [confirmId, setConfirmId] = useState<string | null>(null);
-  
-  // Custom event form state
-  const [isAddingEvent, setIsAddingEvent] = useState(false);
-  const [newEventCompany, setNewEventCompany] = useState('');
-  const [newEventRole, setNewEventRole] = useState('');
-  
-  // Mobile view toggle
-  const [mobileView, setMobileView] = useState<'agenda' | 'grid'>('agenda');
+  const [activeDateFilter, setActiveDateFilter] = useState<string>('all');
+  const dateScrollRef = useRef<HTMLDivElement>(null);
 
-  // Parse dates and filter jobs
   const jobsWithDates = useMemo(() => {
     return jobs
       .map(job => ({ ...job, parsedDate: parseDeadlineDate(job.deadline) }))
@@ -70,30 +154,56 @@ export function CalendarView({
     return showDismissed ? jobsWithDates : jobsWithDates.filter(j => !dismissedJobs.includes(j.id));
   }, [jobsWithDates, dismissedJobs, showDismissed]);
 
-  const upcomingJobs = useMemo(() => {
-    const today = startOfDay(new Date());
+  const today = startOfDay(new Date());
+
+  // Section 1: Today's Tasks
+  const todaysTasks = useMemo(() => {
     return visibleJobs
       .filter(j => {
-        const days = differenceInDays(j.parsedDate!, today);
-        return days >= 0 && days <= 14;
+        const status = jobStatuses[j.id];
+        return (status === 'oa' || status === 'interview') && isToday(j.parsedDate!);
+      })
+      .sort((a, b) => {
+        const timeA = taskTimes[a.id]?.time || extractTime(a.rawBody) || '24:00';
+        const timeB = taskTimes[b.id]?.time || extractTime(b.rawBody) || '24:00';
+        return timeA.localeCompare(timeB);
+      });
+  }, [visibleJobs, jobStatuses, taskTimes]);
+
+  // Section 2: Upcoming Tasks
+  const upcomingTasksRaw = useMemo(() => {
+    return visibleJobs
+      .filter(j => {
+        const status = jobStatuses[j.id];
+        return (status === 'oa' || status === 'interview') && differenceInDays(j.parsedDate!, today) > 0;
       })
       .sort((a, b) => a.parsedDate!.getTime() - b.parsedDate!.getTime());
-  }, [visibleJobs]);
+  }, [visibleJobs, jobStatuses, today]);
 
-  const groupedAgendaJobs = useMemo(() => {
-    const today = startOfDay(new Date());
-    const upcoming = visibleJobs.filter(j => differenceInDays(j.parsedDate!, today) >= 0)
-      .sort((a, b) => a.parsedDate!.getTime() - b.parsedDate!.getTime());
-    
+  const upcomingDates = useMemo(() => {
+    const dates = new Set<string>();
+    upcomingTasksRaw.forEach(t => dates.add(t.parsedDate!.toISOString()));
+    return Array.from(dates).map(d => new Date(d));
+  }, [upcomingTasksRaw]);
+
+  const groupedUpcomingTasks = useMemo(() => {
     const groups: Record<string, ParsedJob[]> = {};
-    upcoming.forEach(job => {
-      const dateKey = job.parsedDate!.toDateString();
+    upcomingTasksRaw.forEach(job => {
+      const dateKey = job.parsedDate!.toISOString();
       if (!groups[dateKey]) groups[dateKey] = [];
       groups[dateKey].push(job);
     });
-    return Object.keys(groups).map(k => ({ date: new Date(k), jobs: groups[k] }));
-  }, [visibleJobs]);
+    return Object.keys(groups)
+      .map(k => ({ date: new Date(k), jobs: groups[k] }))
+      .sort((a, b) => a.date.getTime() - b.date.getTime());
+  }, [upcomingTasksRaw]);
 
+  const filteredGroupedTasks = useMemo(() => {
+    if (activeDateFilter === 'all') return groupedUpcomingTasks;
+    return groupedUpcomingTasks.filter(g => g.date.toISOString() === activeDateFilter);
+  }, [groupedUpcomingTasks, activeDateFilter]);
+
+  // Calendar Logic
   const getJobsForDate = (date: Date) => {
     return visibleJobs.filter(j => isSameDay(j.parsedDate!, date));
   };
@@ -101,87 +211,172 @@ export function CalendarView({
   const handleDayClick = (value: Date) => {
     setSelectedDate(value);
     setIsDialogOpen(true);
-    setIsAddingEvent(false);
-    setNewEventCompany('');
-    setNewEventRole('');
   };
 
-  const handleAddCustom = () => {
-    if (!newEventCompany || !onAddCustomJob || !selectedDate) return;
-    const newJob: ParsedJob = {
-      id: `custom-${Date.now()}`,
-      company: newEventCompany,
-      role: newEventRole,
-      deadline: `${selectedDate.getDate()}/${selectedDate.getMonth() + 1}/${selectedDate.getFullYear()}`,
-      date: new Date().toISOString(),
-      subject: `Custom Event: ${newEventCompany}`,
-      rawBody: '',
-      classification: { type: 'Placement', bucket: 'A' },
-      cgCutoff: '',
-      branches: [],
-      stipend: '',
-      backlogs: ''
-    };
-    onAddCustomJob(newJob);
-    setIsAddingEvent(false);
-    setNewEventCompany('');
-    setNewEventRole('');
+  const getDotColor = (status: JobStatus) => {
+    switch (status) {
+      case 'interview': return 'bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.8)]';
+      case 'oa': return 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.8)]';
+      case 'applied': return 'bg-green-400 shadow-[0_0_8px_rgba(74,222,128,0.6)]';
+      case 'interested': return 'bg-blue-400 shadow-[0_0_8px_rgba(96,165,250,0.6)]';
+      default: return 'bg-gray-400 shadow-[0_0_8px_rgba(156,163,175,0.6)]';
+    }
   };
 
-  const getDotColor = (status: JobStatus, date: Date) => {
-    if (status === 'applied') return 'bg-green-400 shadow-[0_0_8px_rgba(74,222,128,0.6)]';
-    if (status === 'interested') return 'bg-[#FFD600] shadow-[0_0_8px_rgba(255,214,0,0.6)]';
-    if (isToday(date) || isTomorrow(date)) return 'bg-[#EA580C] shadow-[0_0_8px_rgba(234,88,12,0.6)]';
-    return 'bg-white/30';
+  const dbSaveTaskTime = async (id: string, time: string) => {
+    onTaskTimeChange(id, time);
+    if (!userId) return;
+    try {
+      const { doc, setDoc, serverTimestamp } = await import('firebase/firestore');
+      const { db } = await import('@/lib/firebase');
+      const docRef = doc(db, `users/${userId}/taskTimes/${id}`);
+      await setDoc(docRef, { time, updatedAt: serverTimestamp() }, { merge: true });
+    } catch (e) {
+      console.error('Failed to save task time', e);
+    }
   };
 
   return (
-    <div className="flex flex-col lg:flex-row gap-6 items-start">
-      <div className="w-full lg:flex-1 bg-[#0F1115] p-6 rounded-2xl border border-white/10 shadow-[0_0_30px_-10px_rgba(247,147,26,0.1)]">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 pb-4 border-b border-white/10 gap-4">
-          <div className="flex items-center gap-4">
-            <h3 className="font-heading font-semibold text-white text-lg">Deadline Ledger</h3>
-            <div className="flex bg-white/5 rounded-lg p-1 md:hidden">
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className={`h-7 px-2 text-xs ${mobileView === 'agenda' ? 'bg-[#1E293B] text-white' : 'text-[#94A3B8]'}`}
-                onClick={() => setMobileView('agenda')}
-              >
-                <List className="w-3 h-3 mr-1" /> Agenda
-              </Button>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className={`h-7 px-2 text-xs ${mobileView === 'grid' ? 'bg-[#1E293B] text-white' : 'text-[#94A3B8]'}`}
-                onClick={() => setMobileView('grid')}
-              >
-                <CalendarIcon className="w-3 h-3 mr-1" /> Grid
-              </Button>
-            </div>
+    <div className="flex flex-col lg:flex-row gap-6 items-start h-full">
+      {/* Left Column: Tasks */}
+      <div className="w-full lg:w-[320px] shrink-0 flex flex-col gap-6 custom-scrollbar lg:h-[calc(100vh-200px)] lg:overflow-y-auto pr-1">
+        
+        {/* Section 1: Today's Tasks */}
+        <div className="bg-[#0F1115] p-5 rounded-2xl border border-white/10 shadow-[0_0_30px_-10px_rgba(247,147,26,0.1)] relative">
+          <div className="sticky top-0 bg-[#0F1115] z-10 pb-4 mb-2 border-b border-white/10">
+            <h3 className="font-heading font-semibold text-white text-lg flex items-center gap-2">
+              <CalendarClock className="w-5 h-5 text-[#EA580C]" />
+              Today — {format(today, 'E, MMM d')}
+            </h3>
           </div>
+          
+          {todaysTasks.length === 0 ? (
+            <div className="py-8 text-center flex flex-col items-center justify-center opacity-70">
+              <Check className="w-8 h-8 text-[#94A3B8] mb-2" />
+              <p className="text-sm text-[#94A3B8]">No OA or Interviews today</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {todaysTasks.map(job => (
+                <TaskItem 
+                  key={job.id} 
+                  job={job} 
+                  status={jobStatuses[job.id]} 
+                  timeData={taskTimes[job.id]} 
+                  onSaveTime={(time) => dbSaveTaskTime(job.id, time)}
+                  onView={() => onViewJob(job)}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Section 2: Upcoming Tasks */}
+        <div className="bg-[#0F1115] p-5 rounded-2xl border border-white/10 shadow-[0_0_30px_-10px_rgba(247,147,26,0.1)] relative">
+          <div className="sticky top-0 bg-[#0F1115] z-10 pb-4 mb-2 border-b border-white/10">
+            <h3 className="font-heading font-semibold text-white text-lg flex items-center gap-2 mb-3">
+              <CalendarIcon className="w-5 h-5 text-[#F7931A]" />
+              Upcoming
+            </h3>
+            {upcomingDates.length > 0 && (
+              <div 
+                className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1" 
+                ref={dateScrollRef}
+              >
+                <Badge 
+                  variant={activeDateFilter === 'all' ? 'default' : 'outline'}
+                  className={`cursor-pointer whitespace-nowrap ${activeDateFilter === 'all' ? 'bg-[#F7931A] text-black hover:bg-[#EA580C]' : 'text-[#94A3B8] border-white/10 hover:text-white'}`}
+                  onClick={() => setActiveDateFilter('all')}
+                >
+                  All
+                </Badge>
+                {upcomingDates.map(date => {
+                  const dateStr = date.toISOString();
+                  const isTomorrowDate = differenceInDays(date, today) === 1;
+                  const label = isTomorrowDate ? `Tomorrow ${format(date, 'MMM d')}` : format(date, 'E MMM d');
+                  return (
+                    <Badge 
+                      key={dateStr}
+                      variant={activeDateFilter === dateStr ? 'default' : 'outline'}
+                      className={`cursor-pointer whitespace-nowrap ${activeDateFilter === dateStr ? 'bg-[#F7931A] text-black hover:bg-[#EA580C]' : 'text-[#94A3B8] border-white/10 hover:text-white'}`}
+                      onClick={() => setActiveDateFilter(dateStr)}
+                    >
+                      {label}
+                    </Badge>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {filteredGroupedTasks.length === 0 ? (
+            <div className="py-8 text-center flex flex-col items-center justify-center opacity-70">
+              <CalendarIcon className="w-8 h-8 text-[#94A3B8] mb-2" />
+              <p className="text-sm text-[#94A3B8]">No upcoming OA or Interviews</p>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {filteredGroupedTasks.map(group => {
+                const isTomorrowDate = differenceInDays(group.date, today) === 1;
+                const headerLabel = isTomorrowDate ? `Tomorrow — ${format(group.date, 'E, MMM d')}` : format(group.date, 'E, MMM d');
+                return (
+                  <div key={group.date.toISOString()} className="space-y-3">
+                    <div className="text-xs font-mono text-[#F7931A] uppercase tracking-wider pl-1">
+                      {headerLabel}
+                    </div>
+                    {group.jobs.map(job => (
+                      <TaskItem 
+                        key={job.id} 
+                        job={job} 
+                        status={jobStatuses[job.id]} 
+                        timeData={taskTimes[job.id]} 
+                        onSaveTime={(time) => dbSaveTaskTime(job.id, time)}
+                        onView={() => onViewJob(job)}
+                      />
+                    ))}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+      </div>
+
+      {/* Right Column: Calendar Divider */}
+      <div className="hidden lg:block w-px bg-gradient-to-b from-transparent via-white/10 to-transparent h-full"></div>
+
+      {/* Right Column: Calendar Grid */}
+      <div className="w-full lg:flex-1 bg-[#0F1115] p-6 rounded-2xl border border-white/10 shadow-[0_0_30px_-10px_rgba(247,147,26,0.1)]">
+        <div className="flex items-center justify-between mb-6 pb-4 border-b border-white/10">
+          <h3 className="font-heading font-semibold text-white text-lg">Deadline Ledger</h3>
           <Button variant="ghost" size="sm" onClick={onToggleShowDismissed} className="text-xs font-mono text-[#94A3B8] hover:text-white">
             {showDismissed ? <EyeOff className="w-4 h-4 mr-2" /> : <Eye className="w-4 h-4 mr-2" />}
             {showDismissed ? "[HIDE DISMISSED]" : "[SHOW DISMISSED]"}
           </Button>
         </div>
         
-        <div className={`calendar-container ${mobileView === 'agenda' ? 'hidden md:block' : 'block'}`}>
+        <div className="calendar-container">
           <Calendar
             onClickDay={(value) => handleDayClick(value as Date)}
             tileContent={({ date, view }) => {
               if (view === 'month') {
                 const dayJobs = getJobsForDate(date);
                 if (dayJobs.length > 0) {
+                  const displayDots = dayJobs.slice(0, 3);
+                  const extra = dayJobs.length - 3;
                   return (
-                    <div className="flex flex-wrap justify-center gap-1.5 mt-2">
-                      {dayJobs.map(j => (
+                    <div className="flex flex-wrap justify-center items-center gap-1 mt-1.5">
+                      {displayDots.map(j => (
                         <div 
                           key={j.id} 
-                          className={`w-1.5 h-1.5 rounded-full ${getDotColor(jobStatuses[j.id] || 'none', date)}`} 
+                          className={`w-1.5 h-1.5 rounded-full ${getDotColor(jobStatuses[j.id] || 'none')}`} 
                           title={j.company || 'Job'} 
                         />
                       ))}
+                      {extra > 0 && (
+                        <span className="text-[8px] font-mono text-[#94A3B8] ml-0.5">+{extra}</span>
+                      )}
                     </div>
                   );
                 }
@@ -191,154 +386,63 @@ export function CalendarView({
             className="w-full rounded-lg border-none shadow-sm p-2 md:p-4 font-body text-xs md:text-sm bg-transparent text-white mobile-calendar-grid"
           />
         </div>
-
-        <div className={`md:hidden ${mobileView === 'agenda' ? 'block' : 'hidden'}`}>
-          {groupedAgendaJobs.length === 0 ? (
-            <div className="py-12 text-center text-[#94A3B8]">No upcoming deadlines.</div>
-          ) : (
-            <div className="space-y-6">
-              {groupedAgendaJobs.map(group => (
-                <div key={group.date.toISOString()}>
-                  <div className="text-xs font-mono text-[#F7931A] mb-3 uppercase tracking-wider">
-                    {group.date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
-                  </div>
-                  <div className="space-y-3">
-                    {group.jobs.map(job => (
-                      <div key={job.id} className="bg-black/20 border border-white/10 rounded-xl p-4 flex flex-col gap-2">
-                        <div className="flex justify-between items-start">
-                          <span className="font-heading font-semibold text-white">{job.company || 'Unknown'}</span>
-                          <Button variant="ghost" size="sm" onClick={() => { setSelectedDate(group.date); setIsDialogOpen(true); }} className="h-6 px-2 text-[10px] bg-white/5 hover:bg-white/10">
-                            View
-                          </Button>
-                        </div>
-                        <span className="text-xs text-[#94A3B8] truncate">{job.role}</span>
-                        <div className="mt-1">
-                          <span className={`inline-block w-2 h-2 rounded-full mr-2 ${getDotColor(jobStatuses[job.id] || 'none', group.date)}`} />
-                          <span className="text-xs capitalize text-white/70">{jobStatuses[job.id] || 'None'}</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
       </div>
 
-      <div className="w-full lg:w-80 shrink-0 bg-[#0F1115] p-6 rounded-2xl border border-white/10 shadow-[0_0_30px_-10px_rgba(247,147,26,0.1)] space-y-6">
-        <h3 className="font-heading font-semibold text-white text-lg pb-4 border-b border-white/10">Upcoming Nodes (14d)</h3>
-        {upcomingJobs.length === 0 ? (
-          <div className="py-12 flex flex-col items-center text-center">
-             <div className="w-16 h-16 bg-white/5 border border-white/10 rounded-full flex items-center justify-center mb-4 shadow-[0_0_20px_rgba(247,147,26,0.1)]">
-               <CalendarClock className="w-8 h-8 text-[#94A3B8]" />
-             </div>
-             <p className="text-sm font-medium text-white">No active deadlines detected</p>
-             <p className="text-xs text-[#94A3B8] font-mono mt-2">Network sync complete.</p>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {upcomingJobs.map(job => {
-              const daysLeft = differenceInDays(job.parsedDate!, startOfDay(new Date()));
-              return (
-                <div key={job.id} className="p-4 border border-white/10 bg-black/20 rounded-xl hover:border-[#F7931A]/30 flex flex-col gap-3 transition-colors relative group shadow-sm hover:shadow-[0_0_15px_rgba(247,147,26,0.15)]">
-                  <div className="flex justify-between items-start">
-                    <div className="font-heading font-semibold text-sm text-white">{job.company || 'Unknown Node'}</div>
-                    <Badge variant={daysLeft <= 1 ? "destructive" : "outline"} className="text-[10px] font-mono tracking-wider">
-                      {daysLeft === 0 ? "TODAY" : daysLeft === 1 ? "TOMORROW" : `${daysLeft} DAYS`}
-                    </Badge>
-                  </div>
-                  <div className="text-xs text-[#94A3B8] truncate">{job.role || 'No Function Defined'}</div>
-                  <div className="text-xs text-[#94A3B8] truncate">{job.role || 'No Function Defined'}</div>
-                  
-                  {confirmId === job.id ? (
-                    <Button 
-                      variant="destructive" 
-                      size="sm" 
-                      onClick={() => { onDismiss(job.id); setConfirmId(null); }}
-                      onMouseLeave={() => setConfirmId(null)}
-                      className="absolute top-2 right-2 transition-opacity h-6 px-2 text-[10px] font-mono"
-                    >
-                      CONFIRM DISMISS
-                    </Button>
-                  ) : (
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      onClick={() => setConfirmId(job.id)} 
-                      className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity h-6 px-2 text-[10px] font-mono text-[#F7931A] hover:bg-[#F7931A]/10 hover:text-white"
-                    >
-                      DISMISS
-                    </Button>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
+      {/* Pop-up for Date Click */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-3xl w-full max-h-[85vh] overflow-y-auto bg-[#0F1115] border border-white/10 text-white shadow-[0_0_50px_-10px_rgba(247,147,26,0.2)] md:rounded-xl rounded-t-2xl rounded-b-none md:rounded-b-xl fixed bottom-0 md:bottom-auto md:top-[50%] md:translate-y-[-50%] translate-y-0 transition-transform duration-300 m-0">
-          <DialogHeader>
-            <DialogTitle className="font-heading text-xl md:text-2xl text-white flex justify-between items-center pr-8">
-              <span>Nodes on <span className="text-[#F7931A]">{selectedDate?.toLocaleDateString()}</span></span>
-              {!isAddingEvent && (
-                <Button variant="outline" size="sm" onClick={() => setIsAddingEvent(true)} className="border-[#F7931A]/30 text-[#F7931A] hover:bg-[#F7931A]/10">
-                  + Add Event
-                </Button>
-              )}
+        <DialogContent className="sm:max-w-[420px] w-full max-h-[60vh] overflow-hidden flex flex-col bg-[#0F1115] border border-white/10 text-white shadow-[0_0_50px_-10px_rgba(247,147,26,0.2)] md:rounded-xl rounded-t-2xl rounded-b-none md:rounded-b-xl fixed bottom-0 md:bottom-auto md:top-[50%] md:translate-y-[-50%] translate-y-0 transition-transform duration-300 m-0 p-0">
+          <DialogHeader className="p-6 pb-4 border-b border-white/10">
+            <DialogTitle className="font-heading text-xl text-white flex justify-between items-center pr-8">
+              <span>Deadlines on <span className="text-[#F7931A]">{selectedDate ? format(selectedDate, 'MMM d, yyyy') : ''}</span></span>
             </DialogTitle>
           </DialogHeader>
           
-          {isAddingEvent && (
-            <div className="mt-4 p-4 border border-[#F7931A]/30 bg-[#F7931A]/5 rounded-xl space-y-4">
-              <div className="space-y-3">
-                <label className="text-xs font-mono text-[#94A3B8] uppercase">Company / Title</label>
-                <input 
-                  autoFocus
-                  type="text" 
-                  value={newEventCompany} 
-                  onChange={e => setNewEventCompany(e.target.value)} 
-                  className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#F7931A]/50"
-                  placeholder="e.g. Google"
-                />
-              </div>
-              <div className="space-y-3">
-                <label className="text-xs font-mono text-[#94A3B8] uppercase">Role / Description (Optional)</label>
-                <input 
-                  type="text" 
-                  value={newEventRole} 
-                  onChange={e => setNewEventRole(e.target.value)} 
-                  className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#F7931A]/50"
-                  placeholder="e.g. Software Engineer"
-                  onKeyDown={e => { if (e.key === 'Enter') handleAddCustom(); }}
-                />
-              </div>
-              <div className="flex justify-end gap-2 pt-2">
-                <Button variant="ghost" size="sm" onClick={() => setIsAddingEvent(false)}>Cancel</Button>
-                <Button variant="default" size="sm" onClick={handleAddCustom} disabled={!newEventCompany} className="bg-[#F7931A] text-black hover:bg-[#EA580C]">Save Event</Button>
-              </div>
-            </div>
-          )}
-
-          <div className="grid grid-cols-1 gap-6 mt-6">
-            {selectedDate && getJobsForDate(selectedDate).map(job => (
-              <JobCard 
-                key={job.id} 
-                job={job} 
-                status={jobStatuses[job.id] || 'none'} 
-                onStatusChange={(s) => onStatusChange(job.id, s)} 
-              />
-            ))}
-            {selectedDate && getJobsForDate(selectedDate).length === 0 && !isAddingEvent && (
-              <div className="py-12 text-center text-[#94A3B8]">
-                No events on this date.
+          <div className="flex-1 overflow-y-auto p-6 pt-2 space-y-4 custom-scrollbar">
+            {selectedDate && getJobsForDate(selectedDate).length > 0 ? (
+              getJobsForDate(selectedDate).map(job => {
+                const status = jobStatuses[job.id] || 'none';
+                const time = taskTimes[job.id]?.time || extractTime(job.rawBody);
+                return (
+                  <div key={job.id} className="bg-black/20 border border-white/10 rounded-xl p-4 flex flex-col gap-3">
+                    <div className="flex justify-between items-start gap-2">
+                      <div className="min-w-0">
+                        <div className="font-heading font-semibold text-white truncate">{job.company || 'Unknown'}</div>
+                        <div className="text-xs text-[#94A3B8] truncate">{job.role}</div>
+                      </div>
+                      <Badge className={`text-[10px] font-mono tracking-wider capitalize whitespace-nowrap ${getDotColor(status)} text-white bg-opacity-80`}>
+                        {status === 'none' ? 'No Status' : status}
+                      </Badge>
+                    </div>
+                    <div className="flex justify-between items-center mt-1">
+                      <span className="text-xs text-[#94A3B8] flex items-center gap-1.5">
+                        <Clock className="w-3.5 h-3.5" />
+                        {time || 'No time set'}
+                      </span>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => {
+                          setIsDialogOpen(false);
+                          onViewJob(job);
+                        }} 
+                        className="h-6 px-3 text-[10px] bg-white/5 hover:bg-white/10"
+                      >
+                        View
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })
+            ) : (
+              <div className="py-12 text-center text-[#94A3B8] flex flex-col items-center">
+                <CalendarIcon className="w-8 h-8 mb-3 opacity-50" />
+                <p>No deadlines on this date.</p>
               </div>
             )}
           </div>
         </DialogContent>
       </Dialog>
+
     </div>
   );
 }

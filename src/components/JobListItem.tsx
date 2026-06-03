@@ -70,8 +70,8 @@ export function JobListItem({ job, status, onStatusChange, onClick }: JobListIte
         {/* Mobile Line 1: Company + Dropdown | Desktop: Company */}
         <div className="flex items-center justify-between md:w-[30%] shrink-0">
           <div className="flex items-center gap-2 min-w-0">
-            <span className="font-heading font-bold text-white truncate group-hover:text-[#F7931A] transition-colors">
-              {job.company || "Not specified"}
+            <span className="font-heading font-bold text-white truncate group-hover:text-[#F7931A] transition-colors" title={job.company ? undefined : job.subject}>
+              {job.company || (job.classification?.type !== 'Placement' && job.classification?.type !== 'Internship' ? job.subject : "Not specified")}
             </span>
             {job.messages && job.messages.length > 1 && (
               <Badge variant="outline" className="bg-white/5 text-[#94A3B8] border-white/10 shrink-0 text-[10px] h-5 px-1.5 font-mono hidden md:inline-flex">
@@ -94,12 +94,20 @@ export function JobListItem({ job, status, onStatusChange, onClick }: JobListIte
           </div>
         </div>
 
-        {/* Mobile Line 2: Role + Deadline | Desktop: Role */}
+        {/* Mobile Line 2: Role + Tag + Deadline | Desktop: Role + Tag */}
         <div className="flex items-center justify-between md:flex-1 min-w-0 md:w-[25%] mt-1 md:mt-0">
-          <span className="text-sm font-medium text-[#94A3B8] md:max-w-[120px] lg:max-w-none truncate block">
-            {job.role || "Role not specified"}
-          </span>
-          <div className="md:hidden shrink-0 ml-2">
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            <span className="text-sm font-medium text-[#94A3B8] md:max-w-[120px] lg:max-w-none truncate block" title={job.role ? undefined : (job.company ? job.subject : undefined)}>
+              {job.role || (job.company ? job.subject : "Details inside")}
+            </span>
+            <Badge variant="outline" className="shrink-0 bg-[#F7931A]/5 text-[#F7931A] border-[#F7931A]/30 font-mono text-[10px] uppercase tracking-wider px-1.5 h-5 hidden sm:inline-flex">
+              {job.classification?.type || 'Placement'}
+            </Badge>
+          </div>
+          <div className="md:hidden shrink-0 ml-2 flex items-center gap-2">
+            <Badge variant="outline" className="sm:hidden bg-[#F7931A]/5 text-[#F7931A] border-[#F7931A]/30 font-mono text-[10px] uppercase tracking-wider px-1.5 h-5">
+              {job.classification?.type || 'Placement'}
+            </Badge>
             <span className={`text-xs font-mono font-medium ${getDeadlineColor(job.deadline)}`}>
               {formatDeadline(job.deadline)}
             </span>

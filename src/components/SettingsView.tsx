@@ -53,7 +53,7 @@ export function SettingsView({ profile, onProfileUpdate }: SettingsViewProps) {
     const loadData = async () => {
       // 1. Load Preferences
       try {
-        const prefDoc = await getDoc(doc(db, 'users', userId, 'preferences'));
+        const prefDoc = await getDoc(doc(db, 'users', userId));
         if (prefDoc.exists()) {
           const data = prefDoc.data();
           setCgpa(data.cgpa || "");
@@ -121,7 +121,7 @@ export function SettingsView({ profile, onProfileUpdate }: SettingsViewProps) {
     setSavingPrefs(true);
     setPrefMessage("");
     try {
-      await setDoc(doc(db, 'users', userId, 'preferences'), {
+      await setDoc(doc(db, 'users', userId), {
         cgpa,
         branch,
         activeBacklogs: parseInt(backlogs, 10) || 0,
@@ -288,7 +288,7 @@ export function SettingsView({ profile, onProfileUpdate }: SettingsViewProps) {
                   className="w-full font-mono bg-black/40 border border-white/10 text-white rounded-md px-3 py-2 h-11 appearance-none focus:outline-none focus:ring-2 focus:ring-[#F7931A]/50 focus:border-transparent"
                 >
                   <option value="" disabled className="bg-[#0F1115] text-white/50">Select your branch...</option>
-                  {["CSE", "IT", "ECE", "EE", "ME", "CE", "CH", "others"].map(b => (
+                  {["BT", "CE", "CIOT", "CSAI", "CSDA", "CSDS", "CSE", "ECAM", "ECE", "ECIOT", "EE", "GI", "ICE", "IT", "ITNS", "MAC", "ME", "MEEV"].map(b => (
                     <option key={b} value={b} className="bg-[#0F1115] text-white">{b}</option>
                   ))}
                 </select>

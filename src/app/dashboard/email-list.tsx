@@ -68,6 +68,7 @@ interface EmailListProps {
 export default function EmailList({ session }: EmailListProps) {
   const [jobs, setJobs] = useState<ParsedJob[]>([]);
   const [jobStatuses, setJobStatuses] = useState<Record<string, JobStatus>>({});
+  const [taskTimes, setTaskTimes] = useState<Record<string, { time: string }>>({});
   const [profile, setProfile] = useState<UserProfile>({ cgpa: '', branch: '', geminiKey: '' });
   
   const [loading, setLoading] = useState(true);
@@ -178,7 +179,22 @@ export default function EmailList({ session }: EmailListProps) {
       }
     };
     
+    const loadTaskTimes = async () => {
+      try {
+        const q = query(collection(db, `users/${session.user.id}/taskTimes`));
+        const querySnapshot = await getDocs(q);
+        const times: Record<string, { time: string }> = {};
+        querySnapshot.forEach((d) => {
+          times[d.id] = { time: d.data().time };
+        });
+        setTaskTimes(times);
+      } catch (e) {
+        console.error('Failed to load taskTimes from Firestore', e);
+      }
+    };
+    
     migrateAndLoad();
+    loadTaskTimes();
   }, [session?.user?.id]);
 
   const handleStatusChange = async (id: string, status: JobStatus) => {
@@ -318,25 +334,11 @@ export default function EmailList({ session }: EmailListProps) {
     });
   };
 
-  const { bucketA, bucketB } = useMemo(() => {
-    const a: ParsedJob[] = [...customJobs];
-    const b: ParsedJob[] = [];
-    for (const job of jobs) {
-      const manual = reclassifications[job.id];
-      const autoBucket = job.classification?.bucket || 'A';
-      const finalBucket = manual || autoBucket;
-      if (finalBucket === 'A') a.push(job);
-      else b.push(job);
-    }
-    return { bucketA: a, bucketB: b };
-  }, [jobs, reclassifications]);
+  const bucketA = useMemo(() => {
+    return [...customJobs, ...jobs];
+  }, [jobs, customJobs]);
 
-  useEffect(() => {
-    if (bucketB.length > 0) {
-      const hasUnread = bucketB.some(job => !readOtherMails.includes(job.id));
-      if (hasUnread) setShowOtherMails(true);
-    }
-  }, [bucketB, readOtherMails]);
+  const bucketB: ParsedJob[] = []; // Kept for type safety in other components, but always empty.
 
   const parseDateForSort = (dateStr: string | null) => {
     if (!dateStr) return Number.MAX_SAFE_INTEGER;
@@ -350,16 +352,9 @@ export default function EmailList({ session }: EmailListProps) {
   };
 
   // Filtering Logic
-  const filteredJobs = useMemo(() => {
+  // Base Filtering Logic (Search, Profile, Min Stipend, Tech Filter)
+  const baseFilteredJobs = useMemo(() => {
     return bucketA.filter(job => {
-      // Tab filter
-      const status = jobStatuses[job.id] || 'none';
-      if (activeTab === 'companies') {
-        if (!job.company || job.company === 'Unknown') return false;
-      } else if (activeTab !== 'all' && activeTab !== 'other' && status !== activeTab) {
-        return false;
-      }
-
       // Profile CGPA filter
       if (profile.cgpa && job.cgCutoff) {
         const myCg = parseFloat(profile.cgpa);
@@ -376,8 +371,13 @@ export default function EmailList({ session }: EmailListProps) {
         if (!matchesBranch) return false;
       }
 
-      // Role Search
-      if (debouncedRoleSearch && job.role && !job.role.toLowerCase().includes(debouncedRoleSearch.toLowerCase())) return false;
+      // Role or Tag Search
+      if (debouncedRoleSearch) {
+        const searchLower = debouncedRoleSearch.toLowerCase();
+        const roleMatch = job.role && job.role.toLowerCase().includes(searchLower);
+        const typeMatch = job.classification?.type && job.classification.type.toLowerCase().includes(searchLower);
+        if (!roleMatch && !typeMatch) return false;
+      }
 
       // Stipend Minimum
       if (debouncedMinStipend && job.stipend) {
@@ -397,16 +397,32 @@ export default function EmailList({ session }: EmailListProps) {
       if (techFilter !== 'all') {
         if (!job.role) return false;
         const roleLower = job.role.toLowerCase();
-        const techKeywords = ['engineer', 'developer', 'sde', 'software', 'data', 'ml', 'ai', 'analyst', 'qa', 'devops', 'cloud', 'cyber', 'network', 'system'];
-        const nonTechKeywords = ['manager', 'consultant', 'finance', 'hr', 'marketing', 'sales', 'operations', 'business', 'analyst'];
         
         if (techFilter === 'tech') {
-          if (!techKeywords.some(kw => roleLower.includes(kw))) return false;
+          const techPattern = /\b(engineer|developer|sde|software|data|ml|ai|qa|devops|cloud|cyber|network|system|it|backend|frontend|fullstack|web)\b/i;
+          const techLong = ['engineer', 'developer', 'software', 'devops', 'cyber', 'backend', 'frontend', 'fullstack'];
+          const matchesTech = techPattern.test(roleLower) || techLong.some(kw => roleLower.includes(kw));
+          if (!matchesTech) return false;
         } else if (techFilter === 'non-tech') {
-          if (!nonTechKeywords.some(kw => roleLower.includes(kw))) return false;
+          const nonTechPattern = /\b(manager|consultant|finance|hr|marketing|sales|operations|business|analyst|management|executive|associate|trainee|intern)\b/i;
+          const nonTechLong = ['manager', 'consultant', 'finance', 'marketing', 'operations', 'business', 'analyst', 'management', 'executive'];
+          const matchesNonTech = nonTechPattern.test(roleLower) || nonTechLong.some(kw => roleLower.includes(kw));
+          if (!matchesNonTech) return false;
         }
       }
 
+      return true;
+    });
+  }, [bucketA, profile, debouncedRoleSearch, debouncedMinStipend, techFilter]);
+
+  // Tab Filtering & Sorting Logic
+  const filteredJobs = useMemo(() => {
+    return baseFilteredJobs.filter(job => {
+      // Tab filter
+      const status = jobStatuses[job.id] || 'none';
+      if (activeTab !== 'all' && status !== activeTab) {
+        return false;
+      }
       return true;
     }).sort((a, b) => {
       if (sortBy === 'company') {
@@ -419,7 +435,7 @@ export default function EmailList({ session }: EmailListProps) {
         return sortOrder === 'asc' ? dateA - dateB : dateB - dateA;
       }
     });
-  }, [bucketA, jobStatuses, profile, activeTab, debouncedRoleSearch, debouncedMinStipend, techFilter, sortBy, sortOrder]);
+  }, [baseFilteredJobs, jobStatuses, activeTab, sortBy, sortOrder]);
 
   const clearFilters = () => {
     setRoleSearch('');
@@ -427,16 +443,16 @@ export default function EmailList({ session }: EmailListProps) {
     setTechFilter('all');
   };
 
-  const counts = {
-    total: bucketA.length,
-    placements: bucketA.filter(j => j.classification?.type === 'Placement' || !j.classification?.type).length,
-    internships: bucketA.filter(j => j.classification?.type === 'Internship').length,
+  const counts = useMemo(() => ({
+    total: baseFilteredJobs.length,
+    placements: baseFilteredJobs.filter(j => j.classification?.type === 'Placement' || !j.classification?.type).length,
+    internships: baseFilteredJobs.filter(j => j.classification?.type === 'Internship').length,
     other: bucketB.length,
-    interested: Object.values(jobStatuses).filter(s => s === 'interested').length,
-    applied: Object.values(jobStatuses).filter(s => s === 'applied').length,
-    oa: Object.values(jobStatuses).filter(s => s === 'oa').length,
-    interview: Object.values(jobStatuses).filter(s => s === 'interview').length,
-  };
+    interested: baseFilteredJobs.filter(j => (jobStatuses[j.id] || 'none') === 'interested').length,
+    applied: baseFilteredJobs.filter(j => (jobStatuses[j.id] || 'none') === 'applied').length,
+    oa: baseFilteredJobs.filter(j => (jobStatuses[j.id] || 'none') === 'oa').length,
+    interview: baseFilteredJobs.filter(j => (jobStatuses[j.id] || 'none') === 'interview').length,
+  }), [baseFilteredJobs, bucketB.length, jobStatuses]);
 
   return (
     <div className="flex w-full h-full text-foreground bg-transparent font-body overflow-hidden">
@@ -535,12 +551,21 @@ export default function EmailList({ session }: EmailListProps) {
                <CalendarView 
                   jobs={bucketA} 
                   jobStatuses={jobStatuses} 
+                  taskTimes={taskTimes}
+                  userId={session?.user?.id}
                   dismissedJobs={dismissedJobs}
                   onDismiss={handleDismissJob}
                   showDismissed={showDismissed}
                   onToggleShowDismissed={() => setShowDismissed(!showDismissed)}
                   onStatusChange={handleStatusChange}
                   onAddCustomJob={handleAddCustomJob}
+                  onTaskTimeChange={(id, time) => {
+                    setTaskTimes(prev => ({ ...prev, [id]: { time } }));
+                  }}
+                  onViewJob={(job) => {
+                    setSelectedMessage(job.messages?.[0] || { messageId: 'root', subject: job.subject, date: job.date, body: job.rawBody || '' });
+                    setSelectedJobData(job);
+                  }}
                 />
             </div>
           )}
@@ -590,75 +615,74 @@ export default function EmailList({ session }: EmailListProps) {
                 </div>
               </div>
 
-              <div className="flex flex-col gap-8 relative">
+              <div className="flex flex-col lg:flex-row gap-6 relative">
                 {isFilterOpen && (
                   <div 
-                    className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 md:hidden" 
+                    className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden" 
                     onClick={() => setIsFilterOpen(false)} 
                   />
                 )}
                 
-                <div className={`fixed bottom-0 left-0 right-0 z-50 w-full bg-[#0F1115] shadow-2xl p-6 border-t border-white/10 transform transition-transform duration-300 ease-in-out rounded-t-2xl md:relative md:translate-y-0 md:rounded-2xl md:border md:w-full md:p-4 ${isFilterOpen ? 'translate-y-0' : 'translate-y-full'}`}>
-                  <div className="flex items-center justify-between mb-4 md:mb-0 md:border-b-0 border-b border-white/10 pb-4 md:pb-0">
-                    <h3 className="font-heading font-semibold text-white text-lg md:hidden">Filters</h3>
-                    <div className="flex items-center gap-2 md:w-full md:justify-between">
-                      <span className="hidden md:inline-flex font-heading font-semibold text-white text-sm items-center gap-2"><Filter className="w-4 h-4 text-[#F7931A]"/> Filters</span>
+                <div className={`fixed inset-y-0 right-0 z-50 w-72 bg-[#0F1115] shadow-2xl p-6 border-l border-white/10 transform transition-transform duration-300 ease-in-out lg:relative lg:translate-x-0 lg:w-64 lg:shadow-lg lg:rounded-2xl lg:border lg:border-white/10 lg:h-fit flex flex-col ${isFilterOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+                  <div className="flex items-center justify-between mb-6">
+                    <h3 className="font-heading font-semibold text-white text-lg">Filters</h3>
+                    <div className="flex items-center gap-2">
                       <Button variant="ghost" size="sm" onClick={clearFilters} className="h-8 px-2 text-xs text-[#94A3B8] hover:text-white">
                         <FilterX className="w-3 h-3 mr-1" /> Clear
                       </Button>
-                      <Button variant="ghost" size="icon" className="md:hidden h-8 w-8 text-[#94A3B8] hover:text-white" onClick={() => setIsFilterOpen(false)}>
+                      <Button variant="ghost" size="icon" className="lg:hidden h-8 w-8 text-[#94A3B8] hover:text-white" onClick={() => setIsFilterOpen(false)}>
                         <X className="w-4 h-4" />
                       </Button>
                     </div>
                   </div>
 
-                  <div className="space-y-6 md:space-y-0 md:flex md:flex-wrap md:gap-4 md:items-end mt-4">
-                    <div className="space-y-3 md:space-y-1.5 md:flex-1 md:min-w-[200px]">
-                      <Label className="text-xs text-[#F7931A] font-mono uppercase tracking-widest md:text-[10px]">Role Category</Label>
+                  <div className="space-y-6 flex-1 overflow-y-auto pr-2 custom-scrollbar">
+                    <div className="space-y-3">
+                      <Label className="text-xs text-[#F7931A] font-mono uppercase tracking-widest">Role Category</Label>
                       <Tabs value={techFilter} onValueChange={(val: any) => setTechFilter(val)} className="w-full">
-                        <TabsList className="w-full bg-black/40 border border-white/5 rounded-xl md:rounded-lg h-10 p-1 flex">
-                          <TabsTrigger value="all" className="flex-1 text-xs data-[state=active]:bg-[#1E293B] data-[state=active]:text-white rounded-lg md:rounded-md">All Roles</TabsTrigger>
-                          <TabsTrigger value="tech" className="flex-1 text-xs data-[state=active]:bg-[#1E293B] data-[state=active]:text-white rounded-lg md:rounded-md">Tech</TabsTrigger>
-                          <TabsTrigger value="non-tech" className="flex-1 text-xs data-[state=active]:bg-[#1E293B] data-[state=active]:text-white rounded-lg md:rounded-md">Non-Tech</TabsTrigger>
+                        <TabsList className="w-full bg-black/40 border border-white/5 rounded-xl h-auto p-1 flex flex-col gap-1">
+                          <TabsTrigger value="all" className="w-full text-xs data-[state=active]:bg-[#1E293B] data-[state=active]:text-white rounded-lg justify-start px-3 py-2">All Roles</TabsTrigger>
+                          <TabsTrigger value="tech" className="w-full text-xs data-[state=active]:bg-[#1E293B] data-[state=active]:text-white rounded-lg justify-start px-3 py-2">Tech</TabsTrigger>
+                          <TabsTrigger value="non-tech" className="w-full text-xs data-[state=active]:bg-[#1E293B] data-[state=active]:text-white rounded-lg justify-start px-3 py-2">Non-Tech</TabsTrigger>
                         </TabsList>
                       </Tabs>
                     </div>
 
-                    <div className="space-y-3 md:space-y-1.5 md:flex-1 md:min-w-[200px]">
-                      <Label className="text-xs text-[#F7931A] font-mono uppercase tracking-widest md:text-[10px]">Role Search</Label>
+                    <div className="space-y-3">
+                      <Label className="text-xs text-[#F7931A] font-mono uppercase tracking-widest">Role Search</Label>
                       <div className="relative">
-                        <Search className="w-4 h-4 absolute left-3 top-4 md:top-3 text-[#94A3B8]" />
+                        <Search className="w-4 h-4 absolute left-3 top-3 text-[#94A3B8]" />
                         <Input 
                           placeholder="e.g. SDE" 
                           value={roleSearch} 
                           onChange={e => setRoleSearch(e.target.value)}
-                          className="pl-10 h-12 md:h-10"
+                          className="pl-10 h-10"
                         />
                       </div>
                     </div>
 
-                    <div className="space-y-3 md:space-y-1.5 md:w-[150px]">
-                      <Label className="text-xs text-[#F7931A] font-mono uppercase tracking-widest md:text-[10px]">Min Stipend</Label>
+                    <div className="space-y-3">
+                      <Label className="text-xs text-[#F7931A] font-mono uppercase tracking-widest">Min Stipend</Label>
                       <div className="relative">
-                        <DollarSign className="w-4 h-4 absolute left-3 top-4 md:top-3 text-[#94A3B8]" />
+                        <DollarSign className="w-4 h-4 absolute left-3 top-3 text-[#94A3B8]" />
                         <Input 
                           placeholder="e.g. 40000" 
                           value={minStipend} 
                           onChange={e => setMinStipend(e.target.value)}
-                          className="pl-10 h-12 md:h-10"
+                          className="pl-10 h-10"
                         />
                       </div>
                     </div>
 
                     {profile.cgpa || profile.branch ? (
-                      <div className="pt-6 mt-6 md:pt-0 md:mt-0 border-t border-white/10 md:border-t-0 md:w-full">
-                        <Label className="text-xs text-[#94A3B8] font-mono uppercase tracking-widest md:text-[10px] mb-3 md:mb-1 block">Active Profile Node</Label>
-                        {profile.cgpa && <div className="text-sm md:text-xs font-mono text-[#FFD600] bg-[#FFD600]/10 border border-[#FFD600]/20 px-3 md:px-2 py-1.5 md:py-1 rounded-lg md:rounded inline-block mb-2 mr-2">CGPA &ge; {profile.cgpa}</div>}
-                        {profile.branch && <div className="text-sm md:text-xs font-mono text-white bg-white/5 border border-white/10 px-3 md:px-2 py-1.5 md:py-1 rounded-lg md:rounded inline-block">Branch: {profile.branch}</div>}
+                      <div className="pt-6 border-t border-white/10 mt-6">
+                        <Label className="text-xs text-[#94A3B8] font-mono uppercase tracking-widest mb-3 block">Active Profile Node</Label>
+                        {profile.cgpa && <div className="text-sm font-mono text-[#FFD600] bg-[#FFD600]/10 border border-[#FFD600]/20 px-3 py-1.5 rounded-lg mb-2">CGPA &ge; {profile.cgpa}</div>}
+                        {profile.branch && <div className="text-sm font-mono text-white bg-white/5 border border-white/10 px-3 py-1.5 rounded-lg">Branch: {profile.branch}</div>}
                       </div>
                     ) : null}
                   </div>
-                  <div className="mt-6 md:hidden">
+                  <div className="mt-6 lg:hidden">
                     <Button className="w-full bg-[#F7931A] text-black font-semibold hover:bg-[#EA580C] h-12" onClick={() => setIsFilterOpen(false)}>
                       Apply Filters
                     </Button>
@@ -680,19 +704,10 @@ export default function EmailList({ session }: EmailListProps) {
                     <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full sm:w-auto overflow-x-auto no-scrollbar">
                       <TabsList className="inline-flex h-12 items-center justify-center rounded-xl bg-black/40 p-1 text-[#94A3B8] w-max min-w-full">
                         <TabsTrigger value="all" className="data-[state=active]:bg-[#1E293B] data-[state=active]:text-white rounded-lg px-4 py-2">All</TabsTrigger>
-                        <TabsTrigger value="companies" className="data-[state=active]:bg-[#1E293B] data-[state=active]:text-white rounded-lg px-4 py-2">Companies</TabsTrigger>
                         <TabsTrigger value="interested" className="data-[state=active]:bg-[#1E293B] data-[state=active]:text-white rounded-lg px-4 py-2">Interested</TabsTrigger>
                         <TabsTrigger value="applied" className="data-[state=active]:bg-[#1E293B] data-[state=active]:text-white rounded-lg px-4 py-2">Applied</TabsTrigger>
                         <TabsTrigger value="oa" className="data-[state=active]:bg-[#1E293B] data-[state=active]:text-white rounded-lg px-4 py-2">OA</TabsTrigger>
                         <TabsTrigger value="interview" className="data-[state=active]:bg-[#1E293B] data-[state=active]:text-white rounded-lg px-4 py-2">Interview</TabsTrigger>
-                        <TabsTrigger value="other" className="data-[state=active]:bg-[#1E293B] data-[state=active]:text-white rounded-lg px-4 py-2 flex items-center gap-2">
-                          Other
-                          {bucketB.length - readOtherMails.length > 0 && (
-                            <span className="w-5 h-5 rounded-full bg-[#EA580C] text-white text-[10px] flex items-center justify-center font-bold">
-                              {bucketB.length - readOtherMails.length}
-                            </span>
-                          )}
-                        </TabsTrigger>
                       </TabsList>
                     </Tabs>
                     <div className="text-xs text-[#94A3B8] font-mono px-4 flex flex-wrap gap-4 py-2 sm:py-0">
@@ -704,25 +719,7 @@ export default function EmailList({ session }: EmailListProps) {
                     </div>
                   </div>
 
-                  {activeTab === 'other' ? (
-                     <div className="border border-white/10 rounded-2xl bg-[#0F1115] shadow-lg overflow-hidden flex flex-col divide-y divide-white/5">
-                        {bucketB.length === 0 ? (
-                           <div className="p-24 text-center text-white font-medium text-lg">No other mails found.</div>
-                        ) : (
-                           bucketB.map(job => (
-                             <OtherMailCard 
-                               key={job.id} 
-                               job={job} 
-                               onMoveToJobs={() => handleReclassify(job.id, 'A')} 
-                               onClick={() => {
-                                 setSelectedMessage(job.messages?.[0] || { messageId: 'root', subject: job.subject, date: job.date, body: job.rawBody || '' });
-                                 setSelectedJobData(job);
-                               }}
-                             />
-                           ))
-                        )}
-                     </div>
-                  ) : loading && !bucketA.length ? (
+                  {loading && !bucketA.length ? (
                     <div className="space-y-4">
                       {[1, 2, 3, 4, 5].map(i => <JobListItemSkeleton key={i} />)}
                     </div>

@@ -84,7 +84,17 @@ export function ProfileModal({ onProfileUpdate }: ProfileModalProps) {
           </div>
           <div className="space-y-2">
             <Label htmlFor="branch" className="font-mono text-white/50 text-xs tracking-widest uppercase">Your Branch</Label>
-            <Input id="branch" value={branch} onChange={e => setBranch(e.target.value)} placeholder="e.g. CSE" className="font-mono bg-black/40 border-white/10 text-white placeholder:text-white/20" />
+            <select 
+              id="branch"
+              value={branch}
+              onChange={e => setBranch(e.target.value)}
+              className="w-full font-mono bg-black/40 border border-white/10 text-white rounded-md px-3 py-2 h-10 appearance-none focus:outline-none focus:ring-1 focus:ring-white/20"
+            >
+              <option value="" disabled className="bg-[#0F1115] text-white/50">Select your branch...</option>
+              {["BT", "CE", "CIOT", "CSAI", "CSDA", "CSDS", "CSE", "ECAM", "ECE", "ECIOT", "EE", "GI", "ICE", "IT", "ITNS", "MAC", "ME", "MEEV"].map(b => (
+                <option key={b} value={b} className="bg-[#0F1115] text-white">{b}</option>
+              ))}
+            </select>
             <p className="text-xs text-[#94A3B8]">Filters blocks by eligible node branches.</p>
           </div>
         </div>
